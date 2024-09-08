@@ -17,7 +17,11 @@ app.use(express.static("public")) // public assets store files like images, etc.
 app.use(cookieParser())
 
 
+// Routes import
+import userRoute from "./routes/user.route.js"
 
+// Route declearation
+app.use("/api/v1/users", userRoute)
 
 
 
