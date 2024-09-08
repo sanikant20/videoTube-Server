@@ -63,6 +63,7 @@ userSchema.methods.isPasswordCorrect = async function (password) {
     return await bcrypt.compare(password, this.password)
 }
 
+// Model to generate access token
 userSchema.models.generateAccessToken = function () {
     return jwt.sign(
         {
@@ -78,6 +79,7 @@ userSchema.models.generateAccessToken = function () {
     )
 }
 
+// Model to generate refresh token
 userSchema.models.generateRefreshToken = function () {
     return jwt.sign(
         {

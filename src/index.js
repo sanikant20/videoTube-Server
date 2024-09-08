@@ -1,18 +1,14 @@
-// require('dotenv').config(path='/.env')
-// console.log(process.env)
-
 import dotenv from "dotenv";
 import connectDB from "./db/connectDB.js";
-// import { SERVER_PORT } from "./constant.js";
-
+import {app} from "./app.js"
 dotenv.config({
     path: '/.env'
 })
 
+
 // Database connection is called here
 connectDB()
     .then(() => {
-
         //Throw error while there is an error
         app.on("error", (error) => {
             console.log("Error : ", error)
