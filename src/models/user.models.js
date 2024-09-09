@@ -4,6 +4,11 @@ import jsonwebtoken from "jsonwebtoken";
 
 
 const userSchema = new Schema({
+    fullName: {
+        type: String,
+        required: true,
+        trim: true
+    },
     userName: {
         type: String,
         required: true,
@@ -17,11 +22,6 @@ const userSchema = new Schema({
         required: true,
         unique: true,
         lowercase: true,
-        trim: true
-    },
-    fullName: {
-        type: String,
-        required: true,
         trim: true
     },
     avatar: {
@@ -63,14 +63,14 @@ userSchema.methods.isPasswordCorrect = async function (password) {
     return await bcrypt.compare(password, this.password)
 }
 
-// Model to generate access token
-userSchema.models.generateAccessToken = function () {
+// Methods to generate access token
+userSchema.methods.generateAccessToken = function () {
     return jwt.sign(
         {
             _id: this._id,
+            fullName: this.fullName,
             userName: this.userName,
-            email: this.email,
-            fullName: this.fullName
+            email: this.email
         },
         process.env.ACCESS_TOKEN_SECRET,
         {
@@ -79,8 +79,8 @@ userSchema.models.generateAccessToken = function () {
     )
 }
 
-// Model to generate refresh token
-userSchema.models.generateRefreshToken = function () {
+// Methods to generate refresh token
+userSchema.methods.generateRefreshToken = function () {
     return jwt.sign(
         {
             _id: this._id
