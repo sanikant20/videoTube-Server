@@ -5,21 +5,22 @@ import { uploadOnClouydinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 
 // arrow function for generating access and refresh token
-const generateAccessAndRefreshToken = async (userID) => {
+const generateAccessAndRefreshTokens = async (userID) => {
+
     const user = await User.findById(userID)
 
     const accessToken = await user.generateAccessToken()
-    const refreshtoken = user.generateRefreshToken()
+    const refreshToken = await user.generateRefreshToken()
 
     //save refresh token to database
-    user.refreshtoken = refreshtoken
+    user.refreshToken = refreshToken
     await user.save({ validateBeforeSave: false })
 
-    return { accessToken, refreshtoken }
+    return { accessToken, refreshToken }
 }
 
 
-// Register api
+// Register arrow function : API
 const registerUser = asyncHandler(async (req, res) => {
     const { fullName, userName, email, password } = req.body
 
@@ -78,8 +79,9 @@ const registerUser = asyncHandler(async (req, res) => {
 });
 
 
-// Login api
+// Login  Arrow function : API 
 const loginUser = asyncHandler(async (req, res) => {
+    // Todo task logic : for login
     //req body -> email, username, password
     //validate user email, username
     //validate password
@@ -92,21 +94,26 @@ const loginUser = asyncHandler(async (req, res) => {
         throw new ApiError(400, "email or username is required.")
     }
 
+    // find the user email and username
     const user = await User.findOne({
         $or: [{ email }, { userName }]
     })
 
+    // user validation
     if (!user) {
         throw new ApiError(404, "email or username is not valid.")
     }
 
+    // user password validation
     const isPasswordValid = await user.isPasswordCorrect(password)
     if (!isPasswordValid) {
         throw new ApiError(401, "Invalid password")
     }
 
-    const { accessToken, refreshToken } = await generateAccessAndRefreshToken(user._id)
+    // getting generated access and refresh token for user
+    const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(user._id)
 
+    //getting user without password and refreshToken
     const loggedInUser = await User.findById(user._id).select("-password -refreshToken")
 
     // options for cookies
@@ -131,7 +138,10 @@ const loginUser = asyncHandler(async (req, res) => {
         )
 });
 
+// Login arrow function
 const logoutUser = asyncHandler(async (req, res) => {
+
+    // find user by id and undefine refreshToken and update database
     await User.findByIdAndUpdate(
         req.user._id,
         {
@@ -150,8 +160,9 @@ const logoutUser = asyncHandler(async (req, res) => {
         secure: true
     }
 
+    // return response
     return res
-        .status(2000)
+        .status(200)
         .clearCookie("accessToken", options)
         .clearCookie("refreshToken", options)
         .json(
