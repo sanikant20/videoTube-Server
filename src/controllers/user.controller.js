@@ -1,7 +1,7 @@
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js"
 import { User } from "../models/user.models.js";
-import { uploadOnClouydinary } from "../utils/cloudinary.js";
+import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken";
 
@@ -40,6 +40,7 @@ const registerUser = asyncHandler(async (req, res) => {
         throw new ApiError(409, "User already existed with the given email or username.")
     }
 
+    console.log("Req files : ",req.files)
     // Get the files path locally, with checks to avoid undefined errors
     const avatarLocalPath = req.files?.avatar?.[0]?.path;
     const coverImageLocalPath = req.files?.coverImage?.[0]?.path;
@@ -49,8 +50,8 @@ const registerUser = asyncHandler(async (req, res) => {
     }
 
     // file upload on cloudinary
-    const avatar = await uploadOnClouydinary(avatarLocalPath)
-    const coverImage = await uploadOnClouydinary(coverImageLocalPath)
+    const avatar = await uploadOnCloudinary(avatarLocalPath)
+    const coverImage = await uploadOnCloudinary(coverImageLocalPath)
 
     if (!avatar) {
         throw new ApiError(400, "Avatar is required !!")
@@ -173,7 +174,7 @@ const logoutUser = asyncHandler(async (req, res) => {
 const refreshAccessToken = asyncHandler(async (req, res) => {
     const incomingRefreshToken = req.cookie?.refreshToken || req.body.refreshToken
 
-    if (incomingRefreshToken) {
+    if (!incomingRefreshToken) {
         throw new ApiError(401, "Unautorized request")
     }
 
