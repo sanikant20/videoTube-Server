@@ -145,8 +145,8 @@ const logoutUser = asyncHandler(async (req, res) => {
     await User.findByIdAndUpdate(
         req.user._id,
         {
-            $set: {
-                refreshToken: undefined
+            $unset: {
+                refreshToken: 1
             }
         },
         {
@@ -310,13 +310,18 @@ const updateCoverImage = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Missing cover image for update")
     }
 
+    console.log("Local updated cover Image :", coverImageLocalPath)
+
     const coverImage = await uploadOnCloudinary(coverImageLocalPath)
+
+    console.log("Cover image cloud details:", coverImage)
 
     if (!coverImage.url) {
         throw new ApiError(400, "Failed to upload cover image on cloudinary for update")
     }
 
-    const user = User.findByIdAndUpdate(
+
+    const user = await User.findByIdAndUpdate(
         req.user?._id,
         {
             $set: {
@@ -335,7 +340,6 @@ const updateCoverImage = asyncHandler(async (req, res) => {
 // GET USER CHANNEL PROFILE WITH AGGREGATION PIPELINE
 const getUserChannelProfile = asyncHandler(async (req, res) => {
     // Extract 'userName' from the URL parameters
-
     const { userName } = req.params;
 
     // Check if 'userName' is provided and not just whitespace, throw error if missing
@@ -434,7 +438,7 @@ const getWatchHistory = asyncHandler(async (req, res) => {
                 _id: mongoose.Types.ObjectId(req.user?._id) // Convert the 'req.user._id' to an ObjectId for matching
             }
         },
-        
+
         // $lookup: Join the 'videos' collection to fetch videos from the user's 'watchHistory' array
         {
             $lookup: {
