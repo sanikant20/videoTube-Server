@@ -424,58 +424,67 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
         .json(new ApiResponse(200, chanel[0], "User channel fetched successfully."));
 });
 
-//GET WATCH HISTORY
+// GET WATCH HISTORY
 const getWatchHistory = asyncHandler(async (req, res) => {
+    // Start an aggregation pipeline on the 'User' collection to fetch the watch history of the logged-in user
     const user = await User.aggregate([
+        // $match: Find the document in the 'User' collection where the '_id' matches the logged-in user's ID
         {
             $match: {
-                _id: mongoose.Types.ObjectId(req.user?._id)
+                _id: mongoose.Types.ObjectId(req.user?._id) // Convert the 'req.user._id' to an ObjectId for matching
             }
         },
+        
+        // $lookup: Join the 'videos' collection to fetch videos from the user's 'watchHistory' array
         {
             $lookup: {
-                from: "videos",
-                localField: "watchHistory",
-                foreignField: "_id",
-                as: "watchHistory",
+                from: "videos", // The collection to join with
+                localField: "watchHistory", // The field in 'User' that contains the video IDs
+                foreignField: "_id", // The field in the 'videos' collection that corresponds to the video IDs
+                as: "watchHistory", // The result will be stored in a new 'watchHistory' field
+                // A sub-pipeline is used to further refine the data retrieved from the 'videos' collection
                 pipeline: [
+                    // Nested $lookup: Join the 'users' collection to fetch the 'owner' details of each video
                     {
                         $lookup: {
-                            from: "users",
-                            localField: "owner",
-                            foreignField: "_id",
-                            as: "owner",
+                            from: "users", // The collection to join with (to get the video owner details)
+                            localField: "owner", // The 'owner' field in the 'videos' collection, representing the video's uploader
+                            foreignField: "_id", // The field in 'users' that matches the video's 'owner' field
+                            as: "owner", // The result will be stored in the 'owner' field
                             pipeline: [
+                                // $project: Select specific fields from the 'owner' (user) document
                                 {
                                     $project: {
-                                        fullName: 1,
-                                        userName: 1,
-                                        avatar: 11
+                                        fullName: 1, // Include the owner's full name
+                                        userName: 1, // Include the owner's username
+                                        avatar: 1 // Include the owner's avatar
                                     }
                                 }
                             ]
                         }
                     },
+                    // $addFields: Convert the 'owner' array to a single object (since each video has only one owner)
                     {
                         $addFields: {
                             owner: {
-                                $first: "$owner"
+                                $first: "$owner" // Get the first (and only) owner from the 'owner' array
                             }
                         }
                     }
                 ]
             }
         }
-    ])
+    ]);
 
+    // Send the user's watch history as the response
     return res
         .status(200)
         .json(new ApiResponse(
-            200,
-            user[0].watchHistory,
-            "watch history fetch successfully"
-        ))
-})
+            200, // Status code for success
+            user[0].watchHistory, // The fetched watch history array is sent as part of the response
+            "Watch history fetched successfully" // Success message
+        ));
+});
 
 
 export {
