@@ -172,41 +172,48 @@ const logoutUser = asyncHandler(async (req, res) => {
 
 // Refresh token
 const refreshAccessToken = asyncHandler(async (req, res) => {
-    const incomingRefreshToken = req.cookie?.refreshToken || req.body.refreshToken
+    const incomingRefreshToken = req.cookies?.refreshToken || req.body.refreshToken
 
     if (!incomingRefreshToken) {
         throw new ApiError(401, "Unautorized request")
     }
 
     try {
+        // Verify the incoming refresh token
         const decodedRefreshToken = jwt.verify(incomingRefreshToken, process.env.REFRESH_TOKEN_SECRET)
 
+        // Find the user associated with the refresh token
         const user = await User.findById(decodedRefreshToken?._id)
 
         if (!user) {
             throw new ApiError(401, "Invalid refresh token")
         }
 
+        // Check if the refresh token matches the user's stored token
         if (incomingRefreshToken !== user?.refreshToken) {
             throw new ApiError(401, "Refresh token is expired or used")
         }
 
+        // Set cookie options
         const options = {
             httpOnly: true,
             secure: true
         }
 
-        const { accessToken, newRefreshToken } = await generateAccessAndRefreshTokens(user._id)
+        // Generate new access and refresh tokens
+        const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(user._id)
 
+        // Set the new tokens in cookies and return them in the response
         return res
             .status(200)
             .cookie("accessToken", accessToken, options)
-            .cookie("refreshToken", newRefreshToken, options)
+            .cookie("refreshToken", refreshToken, options)
             .json(
                 new ApiResponse(
                     200,
                     {
-                        accessToken, refreshToken: newRefreshToken
+                        accessToken,
+                        refreshToken
                     },
                     "Access token refreshed"
                 )
@@ -215,6 +222,7 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
         throw new ApiError(401, error?.message || "Invalid refresh token")
     }
 })
+
 
 // change password
 const updatePassword = asyncHandler(async (req, res) => {
