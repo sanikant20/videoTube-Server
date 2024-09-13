@@ -42,7 +42,7 @@ const registerUser = asyncHandler(async (req, res) => {
     }
 
     // Get the files path locally, with checks to avoid undefined errors
-    const avatarLocalPath = req.files?.avatar?.[0]?.path;
+    const avatarLocalFilePath = req.files?.avatar?.[0]?.path;
     const coverImageLocalPath = req.files?.coverImage?.[0]?.path;
 
     if (!avatarLocalPath) {
@@ -255,11 +255,7 @@ const getCurrentUser = asyncHandler(async (req, res) => {
     console.log("User :", req.user)
     return res
         .status(200)
-        .json(200,
-            new ApiResponse(200,
-                req.user,
-                "Current user fetched succesfully."
-            ))
+        .json(new ApiResponse(200, req.user, "Current user fetched succesfully."))
 })
 
 //Update user account details
@@ -288,15 +284,15 @@ const updateAccoutDetails = asyncHandler(async (req, res) => {
 
 // update user avatar
 const updateUserAvatar = asyncHandler(async (req, res) => {
-    const avatarLocalPath = await req.file?.path
+    const avatarLocalFilePath = await req.file?.path
 
-    if (!avatarLocalPath) {
+    if (!avatarLocalFilePath) {
         throw new ApiError(400, "Missing avatar for update")
     }
 
-    const avatar = await uploadOnCloudinary(avatarLocalPath)
+    const avatar = await uploadOnCloudinary(avatarLocalFilePath)
 
-    if (!avatar.url) {
+    if (!avatar?.url) {
         throw new ApiError(400, "Failed to upload avatar on cloudinary for avatar update")
     }
 
@@ -329,7 +325,7 @@ const updateCoverImage = asyncHandler(async (req, res) => {
 
     console.log("Cover image cloud details:", coverImage)
 
-    if (!coverImage.url) {
+    if (!coverImage?.url) {
         throw new ApiError(400, "Failed to upload cover image on cloudinary for update")
     }
 
