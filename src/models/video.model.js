@@ -4,7 +4,7 @@ import mongooseAggregatePaginate from "mongoose-aggregate-paginate-v2";
 
 const VideoSchema = new Schema(
     {
-        videoofile: {
+        videofile: {
             type: String, //Cloudnary url
             required: true
         },
