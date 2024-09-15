@@ -5,7 +5,7 @@ import {
     deleteTweet,
     getUserTweets,
     updateTweets
-} from "../controllers/tweet.controller";
+} from "../controllers/tweet.controller.js";
 
 const router = Router()
 router.route(verifyJWT) // apply middleware for all routes
