@@ -45,12 +45,12 @@ const registerUser = asyncHandler(async (req, res) => {
     const avatarLocalFilePath = req.files?.avatar?.[0]?.path;
     const coverImageLocalPath = req.files?.coverImage?.[0]?.path;
 
-    if (!avatarLocalPath) {
+    if (!avatarLocalFilePath) {
         throw new ApiError(400, "Avatar is missing !!")
     }
 
     // file upload on cloudinary
-    const avatar = await uploadOnCloudinary(avatarLocalPath)
+    const avatar = await uploadOnCloudinary(avatarLocalFilePath)
     const coverImage = await uploadOnCloudinary(coverImageLocalPath)
 
     if (!avatar) {
