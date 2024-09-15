@@ -74,9 +74,9 @@ const registerUser = asyncHandler(async (req, res) => {
         throw new ApiError(500, "Something went wrong while registering user")
     }
 
-    return res.status(201).json(
-        new ApiResponse(200, createdUser, "User registered successfully.")
-    )
+    return res
+        .status(201)
+        .json(new ApiResponse(200, createdUser, "User registered successfully."))
 });
 
 // Login  Arrow function : API 
