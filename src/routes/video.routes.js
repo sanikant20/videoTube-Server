@@ -5,7 +5,9 @@ import {
     getAllVideos,
     getVideoByID,
     publishVideo,
-    updateVideo
+    updateThumbnail,
+    updateVideoDetails,
+    updateVideoFile
 } from "../controllers/video.controller.js";
 import { upload } from "../middlewares/multer.middleware.js";
 
@@ -29,10 +31,14 @@ router
         publishVideo
     )
 
+
+router.route("/update-video-details/:videoId").patch(updateVideoDetails)
+router.route("/update-video/:videoId").patch(upload.single("videoFile"), updateVideoFile)
+router.route("/update-thumbnail/:videoId").patch(upload.single("thumbnail"), updateThumbnail)
+
 router
     .route("/:videoId")
     .get(getVideoByID)
-    .patch(upload.single("thumbnail"), updateVideo)
     .delete(deleteVideo)
 
 export default router
