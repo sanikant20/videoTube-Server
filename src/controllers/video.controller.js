@@ -6,28 +6,17 @@ import { ApiResponse } from "../utils/ApiResponse.js"
 
 // controller to publish video
 const publishVideo = asyncHandler(async (req, res) => {
-    // check for user logged in
-    // check validation
-    // check existed title for video
-    // store files locally
-    // store on cloud and delete local files
-    // create new post and store data
-    // return response
+    const user = req?.user || "owner not found"
+    console.log("User :", user)
+    // if (!user._id) {
+    //     throw new ApiError(400, "Unauthorized, user is not login.")
+    // }
 
     const { title, description } = req.body
-
     // check empty validation
     if (!title && !description) {
         throw new ApiError(400, "Either title or description is required.")
     }
-
-    const userID = req.user?._id
-    console.log("User Id :", userID)
-
-    // Uncomment this validation
-    // if (!userID) {
-    //     throw new ApiError(400, "Unauthorized, user is not login")
-    // }
 
     // Check for existing title
     const existedVideoTitle = await Video.findOne({
@@ -66,7 +55,7 @@ const publishVideo = asyncHandler(async (req, res) => {
         videoFile: cloudVideoFile.url,
         thumbnail: cloudThumbnailFile.url,
         duration: cloudVideoFile?.duration / 60 || "",
-        owner: userID
+        owner: user._id
     })
 
     // const publishedVideo = await Video.findById(video._id)
@@ -91,6 +80,11 @@ const publishVideo = asyncHandler(async (req, res) => {
         },
         {
             $unwind: "$owner"
+        },
+        {
+            $addFields: {
+                owner: "$owner",
+            }
         },
         {
             $project: {
@@ -334,7 +328,10 @@ const deleteVideo = asyncHandler(async (req, res) => {
     if (!video) {
         throw new ApiError(409, "Video not found!!")
     } else {
-        await Video.findByIdAndDelete(videoId)
+        const deletedVideo = await Video.findByIdAndDelete(videoId)
+        if (!deletedVideo) {
+            throw new ApiError(400, "Failed to delete video")
+        }
         return res.status(200).json(new ApiResponse(200, "Video deleted successfully."))
     }
 })
