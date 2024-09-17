@@ -7,13 +7,15 @@ import {
     publishVideo,
     updateThumbnail,
     updateVideoDetails,
-    updateVideoFile
+    updateVideoFile,
+    togglePublishVideo
 } from "../controllers/video.controller.js";
 import { upload } from "../middlewares/multer.middleware.js";
 
 const router = Router()
 router.route(verifyJWT)
 
+// Secure routes for video controller
 router
     .route("/")
     .get(getAllVideos)
@@ -31,7 +33,6 @@ router
         publishVideo
     )
 
-
 router.route("/update-video-details/:videoId").patch(updateVideoDetails)
 router.route("/update-video/:videoId").patch(upload.single("videoFile"), updateVideoFile)
 router.route("/update-thumbnail/:videoId").patch(upload.single("thumbnail"), updateThumbnail)
@@ -40,5 +41,8 @@ router
     .route("/:videoId")
     .get(getVideoByID)
     .delete(deleteVideo)
+    
+// Define a route for toggling publish status of a video
+router.route('/toggle-publish/:videoId').patch(togglePublishVideo)
 
 export default router

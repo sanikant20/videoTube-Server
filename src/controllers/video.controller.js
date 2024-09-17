@@ -17,9 +17,17 @@ const publishVideo = asyncHandler(async (req, res) => {
     const { title, description } = req.body
 
     // check empty validation
-    if (!title || !description) {
-        throw new ApiError(400, "All fields are required for video publish")
+    if (!title && !description) {
+        throw new ApiError(400, "Either title or description is required.")
     }
+
+    const userID = req.user?._id
+    console.log("User Id :", userID)
+
+    // Uncomment this validation
+    // if (!userID) {
+    //     throw new ApiError(400, "Unauthorized, user is not login")
+    // }
 
     // Check for existing title
     const existedVideoTitle = await Video.findOne({
@@ -57,7 +65,8 @@ const publishVideo = asyncHandler(async (req, res) => {
         description,
         videoFile: cloudVideoFile.url,
         thumbnail: cloudThumbnailFile.url,
-        duration: cloudVideoFile?.duration / 60 || ""
+        duration: cloudVideoFile?.duration / 60 || "",
+        owner: userID
     })
 
     // const publishedVideo = await Video.findById(video._id)
@@ -65,7 +74,47 @@ const publishVideo = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Something went wrong while publishing video.")
     }
 
-    return res.status(200).json(new ApiResponse(200, { video }, "Video published successfully"))
+    // Aggregation pipeline to get video with owner details
+    const videoWithOwner = await Video.aggregate([
+        {
+            $match: {
+                _id: video._id
+            }
+        },
+        {
+            $lookup: {
+                from: "users",
+                localField: "owner",
+                foreignField: "user._id", // later on change "user._id" with "_id"
+                as: "owner"
+            }
+        },
+        {
+            $unwind: "$owner"
+        },
+        {
+            $project: {
+                title: 1,
+                description: 1,
+                videoFile: 1,
+                thumbnail: 1,
+                duration: 1,
+                views: 1,
+                isPublished: 1,
+                "owner._id": 1,
+                "owner.fullName": 1,
+                "owner.userName": 1,
+                "owner.email": 1,
+            }
+        }
+    ])
+    console.log("Video with owner : ", videoWithOwner)
+
+    if (!videoWithOwner?.length) {
+        throw new ApiError(400, "Owner not found")
+    }
+
+    return res.status(200).json(new ApiResponse(200, { video: videoWithOwner[0] }, "Video published successfully"))
 })
 
 // controller to get videos
@@ -292,7 +341,7 @@ const deleteVideo = asyncHandler(async (req, res) => {
 
 // Controller to toggle publish video
 const togglePublishVideo = asyncHandler(async (req, res) => {
-    const { videoId } = req.params;
+    const { videoId } = req.params
 
     // Check if videoId is provided
     if (!videoId) {
@@ -308,24 +357,24 @@ const togglePublishVideo = asyncHandler(async (req, res) => {
     }
 
     // Toggle the 'published' status
-    const updatedVideo = await Video.findByIdAndUpdate(
-        videoId,
+    const updatedVideoToggle = await Video.findByIdAndUpdate(videoId,
         {
-            $set: { published: !video.published }
+            $set: {
+                isPublished: !video.isPublished
+            }
         },
         {
             new: true, // Return the updated video document
-            lean: true // Return a plain JavaScript object to avoid circular references
         }
     );
 
     // If something went wrong with the update
-    if (!updatedVideo) {
+    if (!updatedVideoToggle) {
         throw new ApiError(500, "Failed to toggle video published status");
     }
 
     // Return success response with updated video details
-    return res.status(200).json(new ApiResponse(200, { updatedVideo }, "Video publish status toggled successfully."));
+    return res.status(200).json(new ApiResponse(200, { updatedVideoToggle }, "Video publish status toggled successfully."));
 });
 
 export {
