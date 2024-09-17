@@ -2,13 +2,12 @@ import { Router } from "express";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 import {
     addComment,
-    deleteComment,
     getVideoComments,
-    updateComment
+    updateComment,
+    deleteComment,
 } from "../controllers/comment.controller.js";
 
 const router = Router()
-
 router.use(verifyJWT)   // apply middlewares on all route
 
 router
@@ -17,7 +16,7 @@ router
     .post(addComment)
 
 router
-    .route("/comment/:commentId")
+    .route("/c/:commentId")
     .patch(updateComment)
     .delete(deleteComment)
 
