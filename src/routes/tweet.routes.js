@@ -8,10 +8,10 @@ import {
 } from "../controllers/tweet.controller.js";
 
 const router = Router()
-router.route(verifyJWT) // apply middleware for all routes
+router.use(verifyJWT) // apply middleware for all routes
 
 
-router.route("/create-tweet").post(createTweet)
+router.route("/create-tweet").post(verifyJWT, createTweet)
 router.route("/user/:userId").get(getUserTweets)
 router
     .route("/:tweetId")
