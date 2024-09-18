@@ -4,22 +4,6 @@ import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 
-// Controller to get comment for
-const getVideoComments = asyncHandler(async (req, res) => {
-    const { videoId } = req.params
-    if (!videoId) {
-        throw new ApiError(400, "VideoId is missing")
-    }
-
-    const comment = await Comment.find({ video: videoId })
-        .populate("owner", "fullName userName email"); // Populate the user who commented (optional)
-
-    if (!comment.length) {
-        new ApiResponse(200, "There is no comment for this video")
-    }
-
-    return res.status(200).json(new ApiResponse(200, { comment }, `Retrived comment for ${videoId}`))
-})
 
 // Controller to add comment
 const addComment = asyncHandler(async (req, res) => {
@@ -101,32 +85,61 @@ const addComment = asyncHandler(async (req, res) => {
     return res.status(200).json(new ApiResponse(200, "Commented successfuly"))
 })
 
+// Controller to get comment for
+const getVideoComments = asyncHandler(async (req, res) => {
+    const { videoId } = req.params
+    if (!videoId) {
+        throw new ApiError(400, "VideoId is missing")
+    }
+
+    const comment = await Comment.find({ video: videoId })
+        .populate("owner", "fullName userName email"); // Populate the user who commented (optional)
+
+    if (!comment.length) {
+        new ApiResponse(200, "There is no comment for this video")
+    }
+
+    return res.status(200).json(new ApiResponse(200, { comment }, `Retrived comment for ${videoId}`))
+})
+
 // Controller to update comment
 const updateComment = asyncHandler(async (req, res) => {
+
     const { commentId } = req.params
+    const cmtId = await Comment.findById(commentId)
+    console.log("commentId: ", cmtId)
+    if (!cmtId) {
+        throw new ApiError(400, "Invalid or missing commentId")
+    }
+
     const { content } = req.body
     if (!content) {
         throw new ApiError(400, "Comment is required.")
     }
 
-    const comment = await Comment.findByIdAndUpdate(
-        commentId,
-        {
-            $set: {
-                content
+    try {
+        const comment = await Comment.findByIdAndUpdate(
+            commentId,
+            {
+                $set: {
+                    content: content
+                }
+            },
+            {
+                new: true
             }
-        },
-        {
-            new: true
+        )
+        if (!comment) {
+            throw new ApiError(400, "Failed to update comment")
         }
-    )
-    if (!comment) {
-        throw new ApiError(400, "Failed to update comment")
-    }
 
-    return res.status(200).json(new ApiResponse(200, { comment }, "Comment updated."))
+        return res.status(200).json(new ApiResponse(200, { comment }, "Comment updated."))
+    } catch (error) {
+        throw new ApiError(500, error.Comment || "Internal Server Error")
+    }
 })
 
+// Controller to delete
 const deleteComment = asyncHandler(async (req, res) => {
     const { commentId } = req.params
 
