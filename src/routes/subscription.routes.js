@@ -8,7 +8,7 @@ import {
 
 
 const router = Router()
-router.route(verifyJWT) //apply middleware to all routes
+router.use(verifyJWT) //apply middleware to all routes
 
 router
     .route("/channel/:channelId")
