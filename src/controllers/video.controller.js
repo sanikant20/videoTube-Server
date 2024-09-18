@@ -6,11 +6,11 @@ import { ApiResponse } from "../utils/ApiResponse.js"
 
 // controller to publish video
 const publishVideo = asyncHandler(async (req, res) => {
-    const user = req?.user || "owner not found"
+    const user = req.user
     console.log("User :", user)
-    // if (!user._id) {
-    //     throw new ApiError(400, "Unauthorized, user is not login.")
-    // }
+    if (!user._id) {
+        throw new ApiError(400, "Unauthorized, user is not login.")
+    }
 
     const { title, description } = req.body
     // check empty validation
@@ -55,6 +55,8 @@ const publishVideo = asyncHandler(async (req, res) => {
         videoFile: cloudVideoFile.url,
         thumbnail: cloudThumbnailFile.url,
         duration: cloudVideoFile?.duration / 60 || "",
+        // views,
+        isPublished: togglePublishVideo.updatedVideoToggle,
         owner: user._id
     })
 
@@ -74,7 +76,7 @@ const publishVideo = asyncHandler(async (req, res) => {
             $lookup: {
                 from: "users",
                 localField: "owner",
-                foreignField: "user._id", // later on change "user._id" with "_id"
+                foreignField: "_id",
                 as: "owner"
             }
         },
@@ -95,17 +97,12 @@ const publishVideo = asyncHandler(async (req, res) => {
                 duration: 1,
                 views: 1,
                 isPublished: 1,
-                "owner._id": 1,
-                "owner.fullName": 1,
-                "owner.userName": 1,
-                "owner.email": 1,
+                owner: 1,
             }
         }
     ])
-    console.log("Video with owner : ", videoWithOwner)
-
     if (!videoWithOwner?.length) {
-        throw new ApiError(400, "Owner not found")
+        throw new ApiError(400, "Failed to retrive video with owner detail.")
     }
 
     return res.status(200).json(new ApiResponse(200, { video: videoWithOwner[0] }, "Video published successfully"))
@@ -121,7 +118,10 @@ const getAllVideos = asyncHandler(async (req, res) => {
         filter.title = {
             $regex: query,
             $options: "i"
-        }; // 'title' is a field in the Video schema
+        },// 'title' is a field in the Video schema
+        {
+            new: true
+        };
     }
     if (userId) {
         filter.userId = userId;
@@ -221,6 +221,7 @@ const updateVideoDetails = asyncHandler(async (req, res) => {
 const updateVideoFile = asyncHandler(async (req, res) => {
     // Get the uploaded video file path
     const newVideoLocalFilePath = req.file?.path;
+    console.log("local video file: ", newVideoLocalFilePath);
 
     // Check if the video file is missing
     if (!newVideoLocalFilePath) {
@@ -229,10 +230,11 @@ const updateVideoFile = asyncHandler(async (req, res) => {
 
     // Upload the video file to Cloudinary (or another cloud service)
     const videoFile = await uploadOnCloudinary(newVideoLocalFilePath);
+    console.log("Cloud video: ", videoFile);
 
     // Check if the video upload failed
     if (!videoFile?.url) {
-        throw new ApiError(400, "Failed to update video");
+        throw new ApiError(400, "Failed to upload video");
     }
 
     // Get videoId from params
@@ -240,38 +242,42 @@ const updateVideoFile = asyncHandler(async (req, res) => {
 
     // Check if the videoId is invalid
     if (!videoId) {
-        throw new ApiError(400, "VideoId is invalid!!");
+        throw new ApiError(400, "Invalid or missing videoId");
     }
+    console.log('videoId: ', videoId);
 
-    // Update the video with the new video file URL
-    const video = await Video.findByIdAndUpdate(
-        videoId,
-        {
-            $set: {
-                videoFile: videoFile.url // Use the URL from the uploaded video file
+    try {
+        // Update the video with the new video file URL
+        const updatedVideo = await Video.findByIdAndUpdate(
+            videoId,
+            {
+                $set: {
+                    videoFile: videoFile.url
+                }
+            },
+            {
+                new: true, // Return the updated document
             }
-        },
-        {
-            new: true, // Return the updated document
-            lean: true // Use lean to return a plain JavaScript object (avoids circular references)
+        );
+        console.log("updatedVideo: ", updatedVideo);
+
+        // Check if the video update failed
+        if (!updatedVideo) {
+            throw new ApiError(400, "Something went wrong while updating the video");
         }
-    );
 
-    // Check if the video update failed
-    if (!video) {
-        throw new ApiError(400, "Something went wrong while updating videoFile");
+        // Return the updated video in the response
+        return res.status(200).json(new ApiResponse(200, { updatedVideo }, "Video updated successfully."));
+    } catch (error) {
+        throw new ApiError(500, error.message || "Failed to update video");
     }
-
-    // Return the updated video in the response
-    return res
-        .status(200)
-        .json(new ApiResponse(200, { video }, "Video updated successfully."));
 });
 
-// controller to update video thumnbnail
+// Controller to update video thumbnail
 const updateThumbnail = asyncHandler(async (req, res) => {
     // Get the uploaded thumbnail file path
-    const newThumbnail = await req.file?.path;
+    const newThumbnail = req.file?.path;
+    console.log("local thumbnail file: ", newThumbnail);
 
     // Check if the thumbnail is missing
     if (!newThumbnail) {
@@ -280,10 +286,11 @@ const updateThumbnail = asyncHandler(async (req, res) => {
 
     // Upload the thumbnail to Cloudinary (or another cloud service)
     const thumbnail = await uploadOnCloudinary(newThumbnail);
+    console.log("Cloud thumbnail: ", thumbnail);
 
     // Check if the thumbnail upload failed
     if (!thumbnail?.url) {
-        throw new ApiError(400, "Failed to update thumbnail");
+        throw new ApiError(400, "Failed to upload thumbnail");
     }
 
     // Get videoId from params
@@ -291,31 +298,35 @@ const updateThumbnail = asyncHandler(async (req, res) => {
 
     // Check if the videoId is invalid
     if (!videoId) {
-        throw new ApiError(400, "VideoId is invalid!!");
+        throw new ApiError(400, "Invalid or missing videoId");
     }
 
-    // Update the video with the new thumbnail URL
-    const video = await Video.findByIdAndUpdate(
-        videoId,
-        {
-            $set: {
-                thumbnail: thumbnail.url // Use the URL from the uploaded thumbnail
+    try {
+        // Update the video with the new thumbnail URL
+        const updatedVideo = await Video.findByIdAndUpdate(
+            videoId,
+            {
+                $set: {
+                    thumbnail: thumbnail.url // Use the URL from the uploaded thumbnail
+                }
+            },
+            {
+                new: true, // Return the updated document
             }
-        },
-        {
-            new: true, // Return the updated document
-            lean: true // Use lean to return a plain JavaScript object (avoids circular references)
+        );
+
+        // Check if the video update failed
+        if (!updatedVideo) {
+            throw new ApiError(400, "Something went wrong while updating the thumbnail");
         }
-    );
 
-    // Check if the video update failed
-    if (!video) {
-        throw new ApiError(400, "Something went wrong while updating thumbnail");
+        // Return the updated video in the response
+        return res.status(200).json(new ApiResponse(200, { updatedVideo }, "Thumbnail updated successfully."));
+    } catch (error) {
+        throw new ApiError(500, error.message || "Failed to update thumbnail");
     }
-
-    // Return the updated video in the response
-    return res.status(200).json(new ApiResponse(200, { video }, "Thumbnail updated successfully."));
 });
+
 
 //controller to delete video
 const deleteVideo = asyncHandler(async (req, res) => {

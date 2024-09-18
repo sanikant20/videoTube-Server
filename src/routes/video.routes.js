@@ -13,7 +13,7 @@ import {
 import { upload } from "../middlewares/multer.middleware.js";
 
 const router = Router()
-router.route(verifyJWT)
+router.use(verifyJWT)
 
 // Secure routes for video controller
 router.route("/get-all-videos").get(getAllVideos)
