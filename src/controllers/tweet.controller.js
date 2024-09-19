@@ -1,4 +1,5 @@
 import { Tweet } from "../models/tweet.model.js"
+import { Video } from "../models/video.model.js"
 import { ApiError } from "../utils/ApiError.js"
 import { ApiResponse } from "../utils/ApiResponse.js"
 import { asyncHandler } from "../utils/asyncHandler.js"
@@ -74,18 +75,27 @@ const getAllTweets = asyncHandler(async (req, res) => {
 })
 
 const getUserTweets = asyncHandler(async (req, res) => {
-    const { _id } = req.user; // Extract the user's _id from the authenticated user object
-
-    // Fetch tweets where the owner matches the user's ID
-    const tweets = await Tweet.find({ owner: _id })  
-
-    // If no tweets are found, throw an error or handle it gracefully
-    if (!tweets.length) {
-        return res.status(200).json(new ApiResponse(200, [], "No tweets found for this user."));
+    const { _id: userId } = req.user;
+    if (!userId) {
+        throw new ApiError(400, "Unauthorized, user not loggedIn")
     }
 
-    // Return the found tweets in the response
-    return res.status(200).json(new ApiResponse(200, { tweets }, "Tweets retrieved successfully."));
+    try {
+        // Fetch tweets where the owner matches the user's ID
+        const tweets = await Tweet.find({ owner: userId })
+        // .populate("owner", "fullName userName email")
+
+        // If no tweets are found, throw an error or handle it gracefully
+        if (!tweets.length) {
+            return res.status(404).json(new ApiResponse(404, [], "No tweets found for this user."));
+        }
+
+        // Return the found tweets in the response
+        return res.status(200).json(new ApiResponse(200, { tweets }, "Tweets retrieved successfully."));
+
+    } catch (error) {
+        throw new ApiError(500, error.message || "Internal server error.")
+    }
 });
 
 // controller to update tweet
