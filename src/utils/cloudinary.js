@@ -5,7 +5,8 @@ import fs from "fs";
 cloudinary.config({
     cloud_name: process.env.CLOUDINARY_NAME,
     api_key: process.env.CLOUDINARY_API_KEY,
-    api_secret: process.env.CLOUDINARY_API_SECRET
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+    secure: true,
 });
 
 // Upload on cloudinary
@@ -15,7 +16,10 @@ const uploadOnCloudinary = async (localFilePath) => {
         if (!localFilePath) return null
 
         // Upload files
-        const response = await cloudinary.uploader.upload(localFilePath, { resource_type: "auto" })
+        const response = await cloudinary.uploader.upload(localFilePath, {
+            resource_type: "auto",
+            folder: "videoTube" // Cloudinary Folder name
+        })
         console.log("File successfully save on cloudinary: ", response.url)
 
         // unlink local file i.e., delete file locally when uploaded on cloudinary

@@ -10,8 +10,12 @@ The project is organized into the following modules:
 - **Utils**: This module contains utility functions that can be used across the application.
 - **Routes**: This module contains the routes for the application. Each route is associated with a controller that handles the request and generates a response.
 
-The project uses ExpressJS as the web server framework.
 
+The main entry point for the application is the `app.js` file. This file contains the top level logic for the application including the routes and middleware configuration. The `app.js` file imports the routes from the `routes` module and mounts them on the server.
+
+The `index.js` file is the entry point for the application in a production environment. This file is responsible for setting up the server and listening for incoming requests.
+
+The `package.json` contains the configuration for the project, including the dependencies and scripts.
 
 <h3>Getting Started</h3>
 
