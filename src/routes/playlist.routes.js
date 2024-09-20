@@ -13,6 +13,7 @@ import {
 const router = Router()
 router.use(verifyJWT)   // apply middleware to all routes
 
+// Secure routes for playlist controller
 router.route("/create-playlist").post(createPlaylist)
 router.route("/user-playlists").get(getUserPlaylists)
 

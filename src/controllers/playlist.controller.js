@@ -141,22 +141,20 @@ const addVideoToPlaylist = asyncHandler(async (req, res) => {
         throw new ApiError(404, "Playlist not found")
     }
 
-    console.log(playlist.videos)
-
+    // check if video already in playlist
     const videoInPlaylist = await playlist.videos.includes(videoId)
     if (videoInPlaylist) {
         throw new ApiError(400, "Video already in playlist")
     }
 
+    // find video with videoId
     const video = await Video.findById(videoId)
     if (!video) {
         throw new ApiError(404, "Video not found")
     }
 
-    // add video to playlist
+    // add video to playlist and save
     playlist.videos.push(videoId)
-
-    // save playlist
     await playlist.save()
 
     // return playlist

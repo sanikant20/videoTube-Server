@@ -104,10 +104,10 @@ const getVideoComments = asyncHandler(async (req, res) => {
 
 // Controller to update comment
 const updateComment = asyncHandler(async (req, res) => {
-
     const { commentId } = req.params
+
+    // check if commentId is valid
     const cmtId = await Comment.findById(commentId)
-    console.log("commentId: ", cmtId)
     if (!cmtId) {
         throw new ApiError(400, "Invalid or missing commentId")
     }
@@ -126,7 +126,7 @@ const updateComment = asyncHandler(async (req, res) => {
                 }
             },
             {
-                new: true
+                new: true // Return the updated comment
             }
         )
         if (!comment) {

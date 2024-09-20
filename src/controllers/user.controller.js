@@ -219,16 +219,12 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
 // change password
 const updatePassword = asyncHandler(async (req, res) => {
     const { oldPassword, newPassword, confirmPassword } = req.body
-
     if (!(newPassword === confirmPassword)) {
         throw new ApiError(401, "new password and confirm password are not same.")
     }
 
     const user = await User.findById(req.user?._id)
-    console.log("User: ", user)
-
     const isPasswordCorrect = await user.isPasswordCorrect(oldPassword)
-
     if (!isPasswordCorrect) {
         throw new ApiError(401, "Invalid old password.")
     }
@@ -244,10 +240,7 @@ const updatePassword = asyncHandler(async (req, res) => {
 
 // get current user
 const getCurrentUser = asyncHandler(async (req, res) => {
-    console.log("User :", req.user)
-    return res
-        .status(200)
-        .json(new ApiResponse(200, req.user, "Current user fetched succesfully."))
+    return res.status(200).json(new ApiResponse(200, req.user, "Current user fetched succesfully."))
 })
 
 //Update user account details
@@ -306,21 +299,14 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
 // UPDATE COVER IMAGE
 const updateCoverImage = asyncHandler(async (req, res) => {
     const coverImageLocalPath = req.file?.path
-
     if (!coverImageLocalPath) {
         throw new ApiError(400, "Missing cover image for update")
     }
 
-    console.log("Local updated cover Image :", coverImageLocalPath)
-
     const coverImage = await uploadOnCloudinary(coverImageLocalPath)
-
-    console.log("Cover image cloud details:", coverImage)
-
     if (!coverImage?.url) {
         throw new ApiError(400, "Failed to upload cover image on cloudinary for update")
     }
-
 
     const user = await User.findByIdAndUpdate(
         req.user?._id,

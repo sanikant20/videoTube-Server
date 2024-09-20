@@ -10,6 +10,7 @@ import {
 const router = Router()
 router.use(verifyJWT) //apply middleware to all routes
 
+// Secure routes for subscription controller
 router.route("/toggle-subscription/:channelId").post(toggleSubscription)
 router.route("/subscribers").get(getMyChannelSubscriberList)
 router.route("/channels").get(getChannelListToWhomISubscribed)

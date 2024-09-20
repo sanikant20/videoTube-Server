@@ -10,6 +10,7 @@ import {
 const router = Router()
 router.use(verifyJWT)   // apply middlewares on all route
 
+// Secure routes for comment controller
 router
     .route("/video-comment/:videoId")
     .get(getVideoComments)

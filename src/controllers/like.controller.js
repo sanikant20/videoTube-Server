@@ -6,7 +6,7 @@ import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 
-
+// Controller to toggle video like
 const toggleVideoLike = asyncHandler(async (req, res) => {
     // get videoId from params
     const { videoId } = req.params
@@ -54,6 +54,7 @@ const toggleVideoLike = asyncHandler(async (req, res) => {
     }
 })
 
+// Controller to toggle comment like
 const toggleCommentLike = asyncHandler(async (req, res) => {
     const { commentId } = req.params
     if (!commentId) {
@@ -92,7 +93,7 @@ const toggleCommentLike = asyncHandler(async (req, res) => {
     }
 })
 
-
+// controller to toggle tweet like
 const toggleTweetLike = asyncHandler(async (req, res) => {
     const { tweetId } = req.params
     if (!tweetId) {
@@ -131,21 +132,23 @@ const toggleTweetLike = asyncHandler(async (req, res) => {
 
 })
 
+// controller to get liked video only
 const getLikedVideos = asyncHandler(async (req, res) => {
     const { _id: userId } = req.user
     if (!userId) {
         throw new ApiError(400, "Unauthorized, user not logged in.")
     }
-
+    
     try {
-        const likedVideo = await Like.find({ likedBy: userId })
+        // Fetch liked videos only
+        const likedVideo = await Like.find({ likedBy: userId, video: { $exists: true } })
             .populate("video", "videoFile thumbnail title description duration views likeCount")
 
         if (!likedVideo.length) {
             return res.status(404).json(new ApiResponse(404, {}, "No liked video found."))
         }
+        // Return the found liked videos in the response
         return res.status(200).json(new ApiResponse(200, { likedVideo }, "Liked video retrived successfully."))
-
     } catch (error) {
         throw new ApiError(500, error.message || "Internal server error.")
     }

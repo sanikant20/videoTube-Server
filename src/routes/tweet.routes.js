@@ -11,7 +11,7 @@ import {
 const router = Router()
 router.use(verifyJWT) // apply middleware for all routes
 
-
+// Secure routes for tweet controller
 router.route("/create-tweet").post(createTweet)
 router.route("/all-tweets").get(getAllTweets)
 router.route("/user-tweets").get(getUserTweets)

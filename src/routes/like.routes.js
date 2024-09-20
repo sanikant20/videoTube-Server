@@ -11,6 +11,7 @@ import { verifyJWT } from "../middlewares/auth.middleware.js";
 const router = Router()
 router.use(verifyJWT)   // apply middlewares on all route
 
+// Secure routes for like controller
 router.route("/toggle/video/:videoId").post(toggleVideoLike)
 router.route("/toggle/comment/:commentId").post(toggleCommentLike)
 router.route("/toggle/tweet/:tweetId").post(toggleTweetLike)

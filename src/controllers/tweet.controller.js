@@ -67,9 +67,7 @@ const createTweet = asyncHandler(async (req, res) => {
 
 // controller to get user tweeets
 const getAllTweets = asyncHandler(async (req, res) => {
-
     const tweets = await Tweet.find()
-    console.log("Tweets: ", tweets)
     return res.status(200).json(new ApiResponse(200, { tweets }, "All tweets retrived."))
 
 })

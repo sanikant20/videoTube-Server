@@ -6,9 +6,8 @@ import { ApiResponse } from "../utils/ApiResponse.js"
 
 // controller to publish video
 const publishVideo = asyncHandler(async (req, res) => {
-    const user = req.user
-    console.log("User :", user)
-    if (!user._id) {
+    const {_id: userId} = req.user
+    if (!userId) {
         throw new ApiError(400, "Unauthorized, user is not login.")
     }
 
@@ -55,9 +54,8 @@ const publishVideo = asyncHandler(async (req, res) => {
         videoFile: cloudVideoFile.url,
         thumbnail: cloudThumbnailFile.url,
         duration: cloudVideoFile?.duration / 60 || "",
-        // views,
         isPublished: togglePublishVideo.updatedVideoToggle,
-        owner: user._id
+        owner: userId
     })
 
     // const publishedVideo = await Video.findById(video._id)
@@ -221,8 +219,6 @@ const updateVideoDetails = asyncHandler(async (req, res) => {
 const updateVideoFile = asyncHandler(async (req, res) => {
     // Get the uploaded video file path
     const newVideoLocalFilePath = req.file?.path;
-    console.log("local video file: ", newVideoLocalFilePath);
-
     // Check if the video file is missing
     if (!newVideoLocalFilePath) {
         throw new ApiError(400, "Missing video for update");
@@ -230,8 +226,6 @@ const updateVideoFile = asyncHandler(async (req, res) => {
 
     // Upload the video file to Cloudinary (or another cloud service)
     const videoFile = await uploadOnCloudinary(newVideoLocalFilePath);
-    console.log("Cloud video: ", videoFile);
-
     // Check if the video upload failed
     if (!videoFile?.url) {
         throw new ApiError(400, "Failed to upload video");
@@ -244,7 +238,6 @@ const updateVideoFile = asyncHandler(async (req, res) => {
     if (!videoId) {
         throw new ApiError(400, "Invalid or missing videoId");
     }
-    console.log('videoId: ', videoId);
 
     try {
         // Update the video with the new video file URL
@@ -259,8 +252,6 @@ const updateVideoFile = asyncHandler(async (req, res) => {
                 new: true, // Return the updated document
             }
         );
-        console.log("updatedVideo: ", updatedVideo);
-
         // Check if the video update failed
         if (!updatedVideo) {
             throw new ApiError(400, "Something went wrong while updating the video");
@@ -277,17 +268,12 @@ const updateVideoFile = asyncHandler(async (req, res) => {
 const updateThumbnail = asyncHandler(async (req, res) => {
     // Get the uploaded thumbnail file path
     const newThumbnail = req.file?.path;
-    console.log("local thumbnail file: ", newThumbnail);
-
-    // Check if the thumbnail is missing
     if (!newThumbnail) {
         throw new ApiError(400, "Missing thumbnail for update");
     }
 
     // Upload the thumbnail to Cloudinary (or another cloud service)
     const thumbnail = await uploadOnCloudinary(newThumbnail);
-    console.log("Cloud thumbnail: ", thumbnail);
-
     // Check if the thumbnail upload failed
     if (!thumbnail?.url) {
         throw new ApiError(400, "Failed to upload thumbnail");
@@ -326,7 +312,6 @@ const updateThumbnail = asyncHandler(async (req, res) => {
         throw new ApiError(500, error.message || "Failed to update thumbnail");
     }
 });
-
 
 //controller to delete video
 const deleteVideo = asyncHandler(async (req, res) => {
@@ -384,6 +369,7 @@ const togglePublishVideo = asyncHandler(async (req, res) => {
     // Return success response with updated video details
     return res.status(200).json(new ApiResponse(200, { updatedVideoToggle }, "Video publish status toggled successfully."));
 });
+
 
 export {
     publishVideo,
