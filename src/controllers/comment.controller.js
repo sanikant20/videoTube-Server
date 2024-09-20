@@ -12,8 +12,8 @@ const addComment = asyncHandler(async (req, res) => {
     const video = await Video.findById(videoId)
 
     // userData from user 
-    const user = req.user
-    if (!user._id) {
+    const { _id: userId } = req.user
+    if (!userId) {
         throw new ApiError(400, "Unauthorized, user is not login.")
     }
 
@@ -27,7 +27,7 @@ const addComment = asyncHandler(async (req, res) => {
     const comment = await Comment.create({
         content,
         video: video?._id || "video not found",
-        owner: user?._id || "owner not found"
+        owner: userId || "owner not found"
     })
     if (!comment) {
         throw new ApiError(400, "Failed to comment")
