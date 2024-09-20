@@ -4,7 +4,7 @@ import {
     addVideoToPlaylist,
     createPlaylist,
     deletePlaylist,
-    getPlaylistById,
+    getPlaylistByPlaylistId,
     getUserPlaylists,
     removeVideoFromPlaylist,
     updatePlaylist
@@ -13,16 +13,16 @@ import {
 const router = Router()
 router.use(verifyJWT)   // apply middleware to all routes
 
-router.route("/").post(createPlaylist)
+router.route("/create-playlist").post(createPlaylist)
+router.route("/user-playlists").get(getUserPlaylists)
+
 router
     .route("/:playlistId")
-    .get(getPlaylistById)
+    .get(getPlaylistByPlaylistId)
     .delete(deletePlaylist)
     .patch(updatePlaylist)
 
 router.route("/add/:videoId/:playlistId").post(addVideoToPlaylist)
 router.route("/remove/:videoId/:playlistId").patch(removeVideoFromPlaylist)
-
-router.route("/user/:userId").get(getUserPlaylists)
 
 export default router

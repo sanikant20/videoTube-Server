@@ -32,7 +32,7 @@ import videoRoute from "./routes/video.routes.js"
 app.use("/api/v1/comments", commentRoute)
 app.use("/api/v1/health", healthRoute)
 app.use("/api/v1/likes", likeRoute)
-app.use("/api/v1/playlist", playlistRoute)
+app.use("/api/v1/playlists", playlistRoute)
 app.use("/api/v1/subscriptions", subscriptionRoute)
 app.use("/api/v1/tweets", tweetRoute)
 app.use("/api/v1/users", userRoute)
