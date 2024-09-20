@@ -81,13 +81,6 @@ const registerUser = asyncHandler(async (req, res) => {
 
 // Login  Arrow function : API 
 const loginUser = asyncHandler(async (req, res) => {
-    // Todo task logic : for login
-    //req body -> email, username, password
-    //validate user email, username
-    //validate password
-    // generate access and refresh token and save refresh token to db
-    // send / save cookies
-
     const { email, userName, password } = req.body
 
     if (!(email || userName)) {
@@ -223,7 +216,6 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
     }
 })
 
-
 // change password
 const updatePassword = asyncHandler(async (req, res) => {
     const { oldPassword, newPassword, confirmPassword } = req.body
@@ -345,28 +337,20 @@ const updateCoverImage = asyncHandler(async (req, res) => {
         .json(new ApiResponse(200, user, "Cover image updated successfully."))
 })
 
-
 // GET USER CHANNEL PROFILE WITH AGGREGATION PIPELINE
 const getUserChannelProfile = asyncHandler(async (req, res) => {
-    // Extract 'userName' from the URL parameters
     const { userName } = req.params;
-
-    // Check if 'userName' is provided and not just whitespace, throw error if missing
     if (!userName?.trim) {
         throw new ApiError(400, "username is missing");
     }
 
     // Start the aggregation pipeline on the 'User' collection to fetch user channel profile data
     const chanel = await User.aggregate([
-        // Match the document where 'userName' (converted to lowercase) matches the input
         {
             $match: {
                 userName: userName?.toLowerCase()
             }
         },
-
-        // First $lookup: Join 'subscriptions' collection where the 'channel' field matches the user's '_id'
-        // Retrieves all subscribers to this user's channel
         {
             $lookup: {
                 from: "subscriptions",
@@ -375,9 +359,6 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
                 as: "subscribers"
             }
         },
-
-        // Second $lookup: Join 'subscribers' collection where 'subscriber' field matches the user's '_id'
-        // Retrieves all channels this user is subscribed to
         {
             $lookup: {
                 from: "subscribers",
@@ -386,20 +367,14 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
                 as: "subscribedTo"
             }
         },
-
-        // $addFields: Add additional computed fields to the result
         {
             $addFields: {
-                // 'subscribersCount' is the size of the 'subscribers' array (number of people subscribed to the channel)
                 subscribersCount: {
                     $size: "$subscribers"
                 },
-                // 'channelsSubscribedToCount' is the size of the 'subscribedTo' array (number of channels this user is subscribed to)
                 channelsSubscribedToCount: {
                     $size: "$subscribedTo"
                 },
-                // 'isSubscribed' is a boolean indicating if the current logged-in user is subscribed to this channel
-                // It checks if the current user's '_id' is present in the 'subscribers.subscriber' array
                 isSubscribed: {
                     $cond: {
                         if: { $in: [req.user?._id, "$subscribers.subscriber"] },
@@ -409,9 +384,6 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
                 }
             }
         },
-
-        // $project: Define which fields should be included in the final output
-        // Include 'fullName', 'userName', 'subscribersCount', 'channelsSubscribedToCount', 'isSubscribed', 'avatar', 'coverImage', and 'email'
         {
             $project: {
                 fullName: 1,
@@ -425,13 +397,9 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
             }
         }
     ]);
-
-    // If no channel is found (empty result), throw an error indicating the channel does not exist
     if (!chanel?.length) {
         throw new ApiError(400, "Channel doesn't exists");
     }
-
-    // If the channel is found, return the first document from the result with a success response
     return res
         .status(200)
         .json(new ApiResponse(200, chanel[0], "User channel fetched successfully."));
@@ -439,48 +407,47 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
 
 // GET WATCH HISTORY
 const getWatchHistory = asyncHandler(async (req, res) => {
-    // Start an aggregation pipeline on the 'User' collection to fetch the watch history of the logged-in user
+    const { _id: userID } = req.user
+    if (!userID) {
+        throw new ApiError(400, "Unauthorized, user not loggin")
+    }
+
     const user = await User.aggregate([
-        // $match: Find the document in the 'User' collection where the '_id' matches the logged-in user's ID
         {
             $match: {
-                _id: mongoose.Types.ObjectId(req.user?._id) // Convert the 'req.user._id' to an ObjectId for matching
+                _id: userID
             }
         },
-
-        // $lookup: Join the 'videos' collection to fetch videos from the user's 'watchHistory' array
         {
             $lookup: {
-                from: "videos", // The collection to join with
-                localField: "watchHistory", // The field in 'User' that contains the video IDs
-                foreignField: "_id", // The field in the 'videos' collection that corresponds to the video IDs
-                as: "watchHistory", // The result will be stored in a new 'watchHistory' field
+                from: "videos",
+                localField: "watchHistory",
+                foreignField: "_id",
+                as: "watchHistory",
                 // A sub-pipeline is used to further refine the data retrieved from the 'videos' collection
                 pipeline: [
-                    // Nested $lookup: Join the 'users' collection to fetch the 'owner' details of each video
                     {
                         $lookup: {
-                            from: "users", // The collection to join with (to get the video owner details)
-                            localField: "owner", // The 'owner' field in the 'videos' collection, representing the video's uploader
-                            foreignField: "_id", // The field in 'users' that matches the video's 'owner' field
-                            as: "owner", // The result will be stored in the 'owner' field
+                            from: "users",
+                            localField: "owner",
+                            foreignField: "_id",
+                            as: "owner",
                             pipeline: [
-                                // $project: Select specific fields from the 'owner' (user) document
+
                                 {
                                     $project: {
-                                        fullName: 1, // Include the owner's full name
-                                        userName: 1, // Include the owner's username
-                                        avatar: 1 // Include the owner's avatar
+                                        fullName: 1,
+                                        userName: 1,
+                                        avatar: 1
                                     }
                                 }
                             ]
                         }
                     },
-                    // $addFields: Convert the 'owner' array to a single object (since each video has only one owner)
                     {
                         $addFields: {
                             owner: {
-                                $first: "$owner" // Get the first (and only) owner from the 'owner' array
+                                $first: "$owner"
                             }
                         }
                     }
@@ -490,13 +457,7 @@ const getWatchHistory = asyncHandler(async (req, res) => {
     ]);
 
     // Send the user's watch history as the response
-    return res
-        .status(200)
-        .json(new ApiResponse(
-            200, // Status code for success
-            user[0].watchHistory, // The fetched watch history array is sent as part of the response
-            "Watch history fetched successfully" // Success message
-        ));
+    return res.status(200).json(new ApiResponse(200, user[0].watchHistory, "Watch history fetched successfully"));
 });
 
 
