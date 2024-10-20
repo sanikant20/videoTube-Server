@@ -4,9 +4,19 @@ import { Video } from "../models/video.model.js"
 import { uploadOnCloudinary } from "../utils/cloudinary.js"
 import { ApiResponse } from "../utils/ApiResponse.js"
 
+// Function to format duration from seconds to HH:MM:SS
+const formatDuration = (seconds) => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = Math.floor(seconds % 60);
+
+    // Return formatted string
+    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+}
+
 // controller to publish video
 const publishVideo = asyncHandler(async (req, res) => {
-    const {_id: userId} = req.user
+    const { _id: userId } = req.user
     if (!userId) {
         throw new ApiError(400, "Unauthorized, user is not login.")
     }
@@ -38,12 +48,19 @@ const publishVideo = asyncHandler(async (req, res) => {
 
     // file upload on cloudinary
     const cloudVideoFile = await uploadOnCloudinary(localVideoFile)
-    const cloudThumbnailFile = await uploadOnCloudinary(localThumbnailFile)
-
     if (!cloudVideoFile) {
         throw new ApiError(400, "Failed to upload Video  in cloudinary !!")
     }
-    if (!cloudVideoFile) {
+
+    // Assuming you have a way to get the duration of the video in seconds
+    const videoDurationInSeconds = cloudVideoFile.duration; // Replace with the actual property if different
+    const formattedDuration = formatDuration(videoDurationInSeconds);
+
+    console.log(`Video Duration: ${formattedDuration}`);
+
+
+    const cloudThumbnailFile = await uploadOnCloudinary(localThumbnailFile)
+    if (!cloudThumbnailFile) {
         throw new ApiError(400, "Failed to upload thumbanil in cloudinary !!")
     }
 
@@ -53,12 +70,10 @@ const publishVideo = asyncHandler(async (req, res) => {
         description,
         videoFile: cloudVideoFile.url,
         thumbnail: cloudThumbnailFile.url,
-        duration: cloudVideoFile?.duration / 60 || "",
+        duration: formattedDuration,
         isPublished: togglePublishVideo.updatedVideoToggle,
         owner: userId
     })
-
-    // const publishedVideo = await Video.findById(video._id)
     if (!video) {
         throw new ApiError(400, "Something went wrong while publishing video.")
     }
@@ -108,7 +123,7 @@ const publishVideo = asyncHandler(async (req, res) => {
 
 // controller to get videos
 const getAllVideos = asyncHandler(async (req, res) => {
-    const { page = 1, limit = 10, query = "", sortBy = "createdAt", sortType = "desc", userId } = req.query
+    const { page = 1, limit = 12, query = "", sortBy = "createdAt", sortType = "desc", userId } = req.query
 
     // Building the filter object
     let filter = {};
@@ -175,7 +190,9 @@ const getVideoByID = asyncHandler(async (req, res) => {
             return res.status(400).json(new ApiError(400, "Failed to find video with videoId"))
         }
     } catch (error) {
-        console.status(500).json(new ApiError(500, "Internal server error"))
+        return res
+            .status(error.statusCode || 500)
+            .json(new ApiError(error.statusCode || 500, error.message || "Failed to retrieve video."));
     }
 
 })
@@ -370,6 +387,44 @@ const togglePublishVideo = asyncHandler(async (req, res) => {
     return res.status(200).json(new ApiResponse(200, { updatedVideoToggle }, "Video publish status toggled successfully."));
 });
 
+const searchVideos = asyncHandler(async (req, res) => {
+    try {
+       
+        // Perform the search using case-insensitive regular expressions
+        const result = await Video.find({
+            "$or": [
+                { description: { $regex: req.params.key, $options: 'i' } },
+                { title: { $regex: req.params.key, $options: 'i' } },
+            ]
+        });
+
+        // If no videos were found, return a 404 error with a clear message
+        if (!result || result.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'No videos found for the given search term.',
+                data: []
+            });
+        }
+
+        // If videos are found, return them with a 200 success response
+        return res.status(200).json({
+            success: true,
+            message: 'Videos fetched successfully.',
+            data: result
+        });
+
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            message: 'An error occurred while searching for videos. Please try again later.',
+            error: error.message
+        });
+    }
+});
+
+
+
 
 export {
     publishVideo,
@@ -379,5 +434,6 @@ export {
     updateVideoFile,
     updateThumbnail,
     deleteVideo,
-    togglePublishVideo
+    togglePublishVideo,
+    searchVideos
 }

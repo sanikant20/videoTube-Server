@@ -8,16 +8,17 @@ import {
     updateThumbnail,
     updateVideoDetails,
     updateVideoFile,
-    togglePublishVideo
+    togglePublishVideo,
+    searchVideos
 } from "../controllers/video.controller.js";
 import { upload } from "../middlewares/multer.middleware.js";
 
 const router = Router()
-router.use(verifyJWT)
+// router.use(verifyJWT)
 
 // Secure routes for video controllers 
 router.route("/get-all-videos").get(getAllVideos)
-router.route("/publish-video").post(
+router.route("/publish-video").post(verifyJWT,
     upload.fields([
         {
             name: "videoFile",
@@ -31,16 +32,17 @@ router.route("/publish-video").post(
     publishVideo
 )
 
-router.route("/update-video-details/:videoId").patch(updateVideoDetails)
-router.route("/update-video/:videoId").patch(upload.single("videoFile"), updateVideoFile)
-router.route("/update-thumbnail/:videoId").patch(upload.single("thumbnail"), updateThumbnail)
+router.route("/update-video-details/:videoId").patch(verifyJWT, updateVideoDetails)
+router.route("/update-video/:videoId").patch(verifyJWT, upload.single("videoFile"), updateVideoFile)
+router.route("/update-thumbnail/:videoId").patch(verifyJWT, upload.single("thumbnail"), updateThumbnail)
 
 router
     .route("/:videoId")
     .get(getVideoByID)
-    .delete(deleteVideo)
+    .delete(verifyJWT, deleteVideo)
 
 // Define a route for toggling publish status of a video
-router.route('/toggle-publish/:videoId').patch(togglePublishVideo)
+router.route('/toggle-publish/:videoId').patch(verifyJWT, togglePublishVideo)
+router.route("/search/:key").get(searchVideos)
 
 export default router
