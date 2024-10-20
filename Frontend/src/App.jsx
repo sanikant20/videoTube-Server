@@ -1,6 +1,9 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { ThemeProvider, useTheme } from './components/context/ThemeContext'; // Import Theme Context
 
+import UseOnlineStatus from "./components/utils/OnlineStatus";
+import OfflineStatusCard from "./components/utils/OfflineStatusCard";
+
 import PageNotFound from "./components/utils/PageNotFound";
 import Login from "./components/auth/Login";
 import Logout from "./components/auth/Logout";
@@ -25,32 +28,41 @@ const App = () => {
 // ThemedApp applies the theme to the entire app based on the current theme state
 const ThemedApp = () => {
   const { theme } = useTheme();  // Get current theme from context
+  const online = UseOnlineStatus();
 
   return (
     <div className={theme === 'light' ? 'light-mode' : 'dark-mode'}>
-      <Router>
-        <Routes>
-          {/* Public routes */}
+      <div>
+        {online ? (
+          <Router>
+            <Routes>
+              {/* Public routes */}
 
-          <Route path="*" element={<PageNotFound />} />
+              <Route path="*" element={<PageNotFound />} />
 
-          {/* Protected routes with layout */}
-          <Route element={<PrivateRoute><Layout /></PrivateRoute>}>
-            <Route path="/tweets" element={<TweetsMain />} />
-            <Route path="/playlists" element={<PlaylistMain />} />
-            <Route path="/logout" element={<Logout />} />
-          </Route>
+              {/* Protected routes with layout */}
+              <Route element={<PrivateRoute><Layout /></PrivateRoute>}>
+                <Route path="/tweets" element={<TweetsMain />} />
+                <Route path="/playlists" element={<PlaylistMain />} />
+                <Route path="/logout" element={<Logout />} />
+              </Route>
 
-          <Route element={<Layout />}>
-            <Route path="/" element={<HomeMain />} />
-            <Route path="/shorts" element={<ShortsMain />} />
-            <Route path="/profile" element={<ProfileMain />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-          </Route>
+              <Route element={<Layout />}>
+                <Route path="/" element={<HomeMain />} />
+                <Route path="/shorts" element={<ShortsMain />} />
+                <Route path="/profile" element={<ProfileMain />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<Register />} />
+              </Route>
 
-        </Routes>
-      </Router>
+            </Routes>
+          </Router>
+        ) : (
+          <OfflineStatusCard />
+        )
+        }
+      </div>
+
     </div>
   );
 };
