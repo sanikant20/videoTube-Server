@@ -1,7 +1,10 @@
 <h1>Backend Production Level Learning - NodeJS </h1>
+
 <h3>Overview</h3>
 
 This repository contains the source code for a nodejs backend project. The project is designed to demonstrate the use of nodejs and expressjs for building a scalable and secure web application.
+
+You have to initilize the `.env` file in the root directory by yourself manually.
 
 The project is organized into the following modules:
 
@@ -19,6 +22,17 @@ The `package.json` contains the configuration for the project, including the dep
 
 <h3>Getting Started</h3>
 
-To get started with this project, you can clone the repository and install the dependencies with npm by running:
+To get started with this project, you can clone the repository and install the dependencies with npm by running: `npm install`
+
+To run the application, you can run the `npm run dev` command in the root directory. This will start the development server.
 
 
+<h1>Frontend - React + Vite </h1>
+
+<h3>Overview</h3>
+
+This repository contains the source code for a react frontend project. The project is designed to demonstrate the use of react and vite for building a scalable and secure web application.
+
+<h3>Getting Started</h3>
+
+To get started with the frontend, navigate to the `Frontend` folder. Run `npm install` to install the dependencies. Then run `npm run dev` to start the development server.
