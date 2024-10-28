@@ -14,13 +14,21 @@ const addComment = asyncHandler(async (req, res) => {
     // userData from user 
     const { _id: userId } = req.user
     if (!userId) {
-        throw new ApiError(400, "Unauthorized, user is not login.")
+        res.status(400).json({
+            success: false,
+            message: "Unauthorized, user not logged in",
+            error: "Bad Request"
+        })
     }
 
     // comment content from body
     const { content } = req.body
     if (!content) {
-        throw new ApiError(400, "Comment is required.")
+        res.status(400).json({
+            success: false,
+            message: "Comment is required",
+            error: "Bad Request"
+        })
     }
 
     // create new comment
@@ -30,7 +38,11 @@ const addComment = asyncHandler(async (req, res) => {
         owner: userId || "owner not found"
     })
     if (!comment) {
-        throw new ApiError(400, "Failed to comment")
+        res.status(400).json({
+            success: false,
+            message: "Failed to add comment",
+            error: "Bad Request"
+        })
     }
 
     // Pipline for joining video and user collections
@@ -42,7 +54,7 @@ const addComment = asyncHandler(async (req, res) => {
         },
         {
             $lookup: {
-                from: "videos", // Look up the video associated with the comment
+                from: "videos",
                 localField: "video",
                 foreignField: "_id",
                 as: "videoToBeComment"
@@ -50,31 +62,31 @@ const addComment = asyncHandler(async (req, res) => {
         },
         {
             $lookup: {
-                from: "users", // Look up the user who made the comment
+                from: "users",
                 localField: "owner",
                 foreignField: "_id",
                 as: "userWhoCommented"
             }
         },
         {
-            $unwind: "$videoToBeComment" // Unwind the 'videoToBeComment' array
+            $unwind: "$videoToBeComment"
         },
         {
-            $unwind: "$userWhoCommented" // Unwind the 'userWhoCommented' array
+            $unwind: "$userWhoCommented"
         },
         {
             $addFields: {
-                video: "$videoToBeComment", // Assign video data to 'video'
-                owner: "$userWhoCommented"  // Assign user data to 'owner'
+                video: "$videoToBeComment",
+                owner: "$userWhoCommented"
             }
         },
         {
             $project: {
-                content: 1,              // Keep the comment content
-                "video.title": 1,         // Include the video's title
-                "video._id": 1,           // Include the video's ID
-                "owner.fullName": 1,      // Include the owner's full name
-                "owner._id": 1            // Include the owner's ID
+                content: 1,
+                "video.title": 1,
+                "video._id": 1,
+                "owner.fullName": 1,
+                "owner._id": 1
             }
         }
     ]);
@@ -82,43 +94,53 @@ const addComment = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Failed to retrieve comment with owner details");
     }
 
-    return res.status(200).json(new ApiResponse(200, "Commented successfuly"))
+    return res.status(200).json(new ApiResponse(200, { comment: videoCommentWithOwner }, "Commented successfuly"))
 })
 
 // Controller to get comment for
 const getVideoComments = asyncHandler(async (req, res) => {
     const { videoId } = req.params
     if (!videoId) {
-        throw new ApiError(400, "VideoId is missing")
+        res.status(400).json({
+            success: false,
+            message: "VideoId is required",
+            error: "Bad Request"
+        })
     }
 
     const comment = await Comment.find({ video: videoId })
-        .populate("owner", "fullName userName email"); // Populate the user who commented (optional)
+        .populate("owner", "fullName userName email");
 
     if (!comment.length) {
         new ApiResponse(200, "There is no comment for this video")
     }
+    comment.reverse()
 
     return res.status(200).json(new ApiResponse(200, { comment }, `Retrived comment for ${videoId}`))
 })
 
 // Controller to update comment
 const updateComment = asyncHandler(async (req, res) => {
-    const { commentId } = req.params
+    const { commentId } = req.params;
 
-    // check if commentId is valid
-    const cmtId = await Comment.findById(commentId)
-    if (!cmtId) {
-        throw new ApiError(400, "Invalid or missing commentId")
+    // Check if commentId is valid
+    const comment = await Comment.findById(commentId);
+    if (!comment) {
+        return res.status(400).json({ success: false, message: "Comment not found", error: "Bad Request" });
     }
 
-    const { content } = req.body
+    // Check if user is authorized to update the comment
+    if (comment.owner.toString() !== req.user.id) {
+        return res.status(403).json({ success: false, message: "You are not authorized to update this comment", error: "Forbidden" });
+    }
+
+    const { content } = req.body;
     if (!content) {
-        throw new ApiError(400, "Comment is required.")
+        return res.status(400).json({ success: false, message: "Content is required", error: "Bad Request" });
     }
 
     try {
-        const comment = await Comment.findByIdAndUpdate(
+        const updatedComment = await Comment.findByIdAndUpdate(
             commentId,
             {
                 $set: {
@@ -128,36 +150,65 @@ const updateComment = asyncHandler(async (req, res) => {
             {
                 new: true // Return the updated comment
             }
-        )
-        if (!comment) {
-            throw new ApiError(400, "Failed to update comment")
+        );
+
+        if (!updatedComment) {
+            return res.status(404).json({ success: false, message: "Comment not found", error: "Not Found" });
         }
 
-        return res.status(200).json(new ApiResponse(200, { comment }, "Comment updated."))
+        return res.status(200).json(new ApiResponse(200, { comment: updatedComment }, "Comment updated."));
     } catch (error) {
-        throw new ApiError(500, error.Comment || "Internal Server Error")
+        throw new ApiError(500, error.message || "Internal Server Error");
     }
-})
+});
 
-// Controller to delete
+// Controller to delete a comment
 const deleteComment = asyncHandler(async (req, res) => {
-    const { commentId } = req.params
+    const { commentId } = req.params;
 
+    // Check if commentId is provided
     if (!commentId) {
-        throw new ApiError(400, "CommentId is required")
-    }
-    const comment = await Comment.findById(commentId)
-    if (!comment) {
-        throw new ApiError(400, "Comment not found")
-    } else {
-        const deletedComment = await Comment.findByIdAndDelete(commentId)
-        if (!deletedComment) {
-            throw new ApiError(400, "Failed to delete comment.")
-        }
-        return res.status(200).json(new ApiResponse(200, { comment }, "Comment deleted successfully"))
+        return res.status(400).json({
+            success: false,
+            message: "CommentId is required",
+            error: "Bad Request"
+        });
     }
 
-})
+    // Find the comment by ID
+    const comment = await Comment.findById(commentId).populate('owner', '_id'); // Populate owner to verify ownership
+
+    // Check if comment exists
+    if (!comment) {
+        return res.status(404).json({
+            success: false,
+            message: "Comment not found",
+            error: "Not Found"
+        });
+    }
+
+    // Check if the current user is the owner of the comment
+    const { _id: userId } = req.user; // Assuming req.user contains the authenticated user's information
+    if (String(comment.owner._id) !== String(userId)) {
+        return res.status(403).json({
+            success: false,
+            message: "You are not authorized to delete this comment",
+            error: "Forbidden"
+        });
+    }
+
+    // Delete the comment
+    const deletedComment = await Comment.findByIdAndDelete(commentId);
+    if (!deletedComment) {
+        return res.status(500).json({
+            success: false,
+            message: "Failed to delete comment",
+            error: "Internal Server Error"
+        });
+    }
+
+    return res.status(200).json(new ApiResponse(200, {}, "Comment deleted successfully"));
+});
 
 export {
     getVideoComments,

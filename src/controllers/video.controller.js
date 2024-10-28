@@ -389,7 +389,6 @@ const togglePublishVideo = asyncHandler(async (req, res) => {
 
 const searchVideos = asyncHandler(async (req, res) => {
     try {
-       
         // Perform the search using case-insensitive regular expressions
         const result = await Video.find({
             "$or": [
@@ -400,7 +399,7 @@ const searchVideos = asyncHandler(async (req, res) => {
 
         // If no videos were found, return a 404 error with a clear message
         if (!result || result.length === 0) {
-            return res.status(404).json({
+             res.status(404).json({
                 success: false,
                 message: 'No videos found for the given search term.',
                 data: []

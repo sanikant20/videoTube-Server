@@ -56,42 +56,90 @@ const toggleVideoLike = asyncHandler(async (req, res) => {
 
 // Controller to toggle comment like
 const toggleCommentLike = asyncHandler(async (req, res) => {
-    const { commentId } = req.params
+    const { commentId } = req.params;
+
+    // Validate commentId
     if (!commentId) {
-        throw new ApiError(400, "CommentId is missing")
+        return res.status(400).json({
+            success: false,
+            message: "Comment ID is missing",
+            error: "Bad Request"
+        });
     }
-    const comment = await Comment.findById(commentId)
+
+    // Find the comment
+    const comment = await Comment.findById(commentId);
     if (!comment) {
-        throw new ApiError(404, "Comment is not found")
+        return res.status(404).json({
+            success: false,
+            message: "Comment not found",
+            error: "Not Found"
+        });
     }
 
-    const { _id: userId } = req.user
-    if (!userId) {
-        throw new ApiError(404, "Unauthorized, user not logged in")
+    // Ensure user is logged in
+    if (!req.user || !req.user._id) {
+        return res.status(401).json({
+            success: false,
+            message: "Unauthorized, user not logged in",
+            error: "Unauthorized"
+        });
     }
 
-    const existedLikeOnComment = await Like.findOne({ comment: commentId, likedBy: userId })
+    const userId = req.user._id;
 
-    if (existedLikeOnComment) {
-        await Like.deleteOne({ _id: existedLikeOnComment._id })
+    // Start a session for atomic operations (optional, but recommended for complex applications)
+    const session = await Comment.startSession();
+    session.startTransaction();
 
-        comment.likeCount = Math.max(0, comment.likeCount - 1)
-        await comment.save()
+    try {
+        // Check if the user has already liked the comment
+        const existedLikeOnComment = await Like.findOne({ comment: commentId, likedBy: userId });
 
-        return res.status(200).json(new ApiResponse(200, "Comment unliked."))
-    } else {
-        const newCommentLike = new Like({
-            comment: commentId,
-            likedBy: userId
-        })
-        await newCommentLike.save()
+        if (existedLikeOnComment) {
+            // If user has already liked the comment, unlike it
+            await Like.deleteOne({ _id: existedLikeOnComment._id });
 
-        comment.likeCount += 1
-        await comment.save()
+            // Decrement the like count (ensuring it doesn't go below zero)
+            comment.likeCount = Math.max(0, comment.likeCount - 1);
+        } else {
+            // If the user hasn't liked the comment yet, like it
+            const newCommentLike = new Like({
+                comment: commentId,
+                likedBy: userId
+            });
+            
+            // Save the new like
+            await newCommentLike.save();
 
-        return res.status(200).json(new ApiResponse(200, "Comment liked."))
+            // Increment the like count
+            comment.likeCount += 1;
+        }
+
+        // Save the updated comment
+        await comment.save({ session });
+
+        // Commit the transaction
+        await session.commitTransaction();
+        session.endSession();
+
+        return res.status(200).json({
+            success: true,
+            message: existedLikeOnComment ? "Comment unliked." : "Comment liked."
+        });
+    } catch (error) {
+        // If any error occurs, abort the transaction
+        await session.abortTransaction();
+        session.endSession();
+
+        return res.status(500).json({
+            success: false,
+            message: "An error occurred while toggling the like.",
+            error: error.message
+        });
     }
-})
+});
+
 
 // controller to toggle tweet like
 const toggleTweetLike = asyncHandler(async (req, res) => {
@@ -138,7 +186,7 @@ const getLikedVideos = asyncHandler(async (req, res) => {
     if (!userId) {
         throw new ApiError(400, "Unauthorized, user not logged in.")
     }
-    
+
     try {
         // Fetch liked videos only
         const likedVideo = await Like.find({ likedBy: userId, video: { $exists: true } })

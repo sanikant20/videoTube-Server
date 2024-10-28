@@ -8,17 +8,16 @@ import {
 } from "../controllers/comment.controller.js";
 
 const router = Router()
-router.use(verifyJWT)   // apply middlewares on all route
 
 // Secure routes for comment controller
 router
     .route("/video-comment/:videoId")
     .get(getVideoComments)
-    .post(addComment)
+    .post(verifyJWT, addComment)
 
 router
     .route("/c/:commentId")
-    .patch(updateComment)
-    .delete(deleteComment)
+    .patch(verifyJWT, updateComment)
+    .delete(verifyJWT, deleteComment)
 
 export default router

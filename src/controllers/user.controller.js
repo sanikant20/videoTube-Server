@@ -4,7 +4,6 @@ import { User } from "../models/user.model.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken";
-import mongoose from "mongoose";
 
 // arrow function for generating access and refresh token
 const generateAccessAndRefreshTokens = async (userID) => {
@@ -21,24 +20,34 @@ const generateAccessAndRefreshTokens = async (userID) => {
     return { accessToken, refreshToken }
 }
 
-// Register arrow function : API
+// Register arrow function: API
 const registerUser = asyncHandler(async (req, res) => {
-    const { fullName, userName, email, password } = req.body
+    const { fullName, userName, email, password } = req.body;
 
     // Check validation i.e., empty validation
-    if (
-        [fullName, email, userName, password].some((field) => field?.trim() === "")
-    ) {
-        throw new ApiError(400, "All field is required !!")
+    if ([fullName, email, userName, password].some((field) => field?.trim() === "")) {
+        return res.status(400).json({
+            error: true,
+            message: "All fields are required !!"
+        });
+    }
+    // Check for existing username
+    const existingUsername = await User.findOne({ userName });
+    if (existingUsername) {
+        return res.status(409).json({
+            error: true,
+            message: `User already exists with the given username: ${userName}. Please choose a different username.`,
+        });
     }
 
     // Check for existing user
-    const existedUser = await User.findOne({
-        $or: [{ userName }, { email }]
-    })
+    const existingEmail = await User.findOne({ email });
 
-    if (existedUser) {
-        throw new ApiError(409, "User already existed with the given email or username.")
+    if (existingEmail) {
+        return res.status(409).json({
+            error: true,
+            message: `User already exists with the given email: ${email}. \nPlease choose a different email.`,
+        });
     }
 
     // Get the files path locally, with checks to avoid undefined errors
@@ -46,15 +55,21 @@ const registerUser = asyncHandler(async (req, res) => {
     const coverImageLocalPath = req.files?.coverImage?.[0]?.path;
 
     if (!avatarLocalFilePath) {
-        throw new ApiError(400, "Avatar is missing !!")
+        return res.status(400).json({
+            error: true,
+            message: "Avatar is missing !!"
+        });
     }
 
-    // file upload on cloudinary
-    const avatar = await uploadOnCloudinary(avatarLocalFilePath)
-    const coverImage = await uploadOnCloudinary(coverImageLocalPath)
+    // File upload on Cloudinary
+    const avatar = await uploadOnCloudinary(avatarLocalFilePath);
+    const coverImage = coverImageLocalPath ? await uploadOnCloudinary(coverImageLocalPath) : null;
 
     if (!avatar) {
-        throw new ApiError(400, "Avatar is required !!")
+        return res.status(400).json({
+            error: true,
+            message: "Failed to upload avatar !!"
+        });
     }
 
     // Create new user
@@ -65,70 +80,91 @@ const registerUser = asyncHandler(async (req, res) => {
         password,
         avatar: avatar.url,
         coverImage: coverImage?.url || "",
-    })
+    });
 
-    // check createdUser and removed password and refreshToken
-    const createdUser = await User.findById(user._id).select(" -password -refreshToken")
+    // Check created user and remove password and refreshToken
+    const createdUser = await User.findById(user._id).select("-password -refreshToken");
 
     if (!createdUser) {
-        throw new ApiError(500, "Something went wrong while registering user")
+        return res.status(500).json({
+            error: true,
+            message: "Something went wrong while registering the user."
+        });
     }
 
-    return res
-        .status(201)
-        .json(new ApiResponse(200, createdUser, "User registered successfully."))
+    return res.status(201).json({
+        error: false,
+        message: "User registered successfully.",
+        data: createdUser
+    });
 });
 
-// Login  Arrow function : API 
+// Login Arrow function : API 
 const loginUser = asyncHandler(async (req, res) => {
-    const { email, userName, password } = req.body
+    const { email, password } = req.body;
 
-    if (!(email || userName)) {
-        throw new ApiError(400, "email or username is required.")
+    // Validate email
+    if (!email) {
+        return res.status(400).json({
+            error: true,
+            message: "Email is required.",
+        });
     }
 
-    // find the user email and username
-    const user = await User.findOne({
-        $or: [{ email }, { userName }]
-    })
+    // Validate password
+    if (!password) {
+        return res.status(400).json({
+            error: true,
+            message: "Password is required.",
+        });
+    }
 
-    // user validation
+    // Find user by email
+    const user = await User.findOne({ email });
+
+    // User validation
     if (!user) {
-        throw new ApiError(404, "email or username is not valid.")
+        return res.status(404).json({
+            error: true,
+            message: "Email is not valid.",
+        });
     }
 
-    // user password validation
-    const isPasswordValid = await user.isPasswordCorrect(password)
+    // Validate password
+    const isPasswordValid = await user.isPasswordCorrect(password);
     if (!isPasswordValid) {
-        throw new ApiError(401, "Invalid password")
+        return res.status(401).json({
+            error: true,
+            message: "Invalid password.",
+        });
     }
 
-    // getting generated access and refresh token for user
-    const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(user._id)
+    // Generate access and refresh tokens for user
+    const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(user._id);
 
-    //getting user without password and refreshToken
-    const loggedInUser = await User.findById(user._id).select("-password -refreshToken")
+    // Get user without password and refreshToken
+    const loggedInUser = await User.findById(user._id).select("-password -refreshToken");
 
-    // options for cookies
+    // Options for cookies
     const options = {
         httpOnly: true,
-        secure: true
-    }
+        secure: true,
+    };
 
-    // return cookie
+    // Return cookie and response
     return res
         .status(200)
         .cookie("accessToken", accessToken, options)
         .cookie("refreshToken", refreshToken, options)
-        .json(
-            new ApiResponse(
-                200,
-                {
-                    user: loggedInUser, accessToken, refreshToken
-                },
-                "User logged in successfully"
-            )
-        )
+        .json({
+            error: false,
+            message: "User logged in successfully",
+            data: {
+                user: loggedInUser,
+                accessToken,
+                refreshToken,
+            },
+        });
 });
 
 // Login arrow function : API
@@ -150,7 +186,8 @@ const logoutUser = asyncHandler(async (req, res) => {
     // options for cookies
     const options = {
         httpOnly: true,
-        secure: true
+        secure: true,
+        sameSite: "Lax",
     }
 
     // return response
@@ -190,7 +227,8 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
         // Set cookie options
         const options = {
             httpOnly: true,
-            secure: true
+            secure: true,
+            sameSite: "Lax",
         }
 
         // Generate new access and refresh tokens
@@ -216,39 +254,124 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
     }
 })
 
-// change password
 const updatePassword = asyncHandler(async (req, res) => {
-    const { oldPassword, newPassword, confirmPassword } = req.body
-    if (!(newPassword === confirmPassword)) {
-        throw new ApiError(401, "new password and confirm password are not same.")
+    const { oldPassword, newPassword, confirmPassword } = req.body;
+
+    // Check if all fields are provided
+    if (!oldPassword || !newPassword || !confirmPassword) {
+        return res.status(400).json({
+            status: 400,
+            message: "All fields are required.",
+            error: "Bad Request"
+        });
     }
 
-    const user = await User.findById(req.user?._id)
-    const isPasswordCorrect = await user.isPasswordCorrect(oldPassword)
-    if (!isPasswordCorrect) {
-        throw new ApiError(401, "Invalid old password.")
+    // Check if new password and confirm password match
+    if (newPassword !== confirmPassword) {
+        return res.status(400).json({
+            status: 400,
+            message: "New password and confirm password do not match.",
+            error: "Bad Request"
+        });
     }
 
-    user.password = newPassword
-    await user.save({ validateBeforeSave: false })
+    // Check if new password meets the length requirement
+    if (newPassword.length < 6) {
+        return res.status(400).json({
+            status: 400,
+            message: "New password must be at least 6 characters long.",
+            error: "Bad Request"
+        });
+    }
 
-    return res
-        .status(200)
-        .json(new ApiResponse(200, {}, "Password changed successfully."))
+    const { _id: userID } = req.user;
 
-})
+    // Check if userID is present
+    if (!userID) {
+        return res.status(401).json({
+            status: 401,
+            message: "Unauthorized request",
+            error: "Unauthorized request"
+        });
+    }
+
+    const user = await User.findById(userID);
+
+    // Check if user exists
+    if (!user) {
+        return res.status(404).json({
+            status: 404,
+            message: "User not found.",
+            error: "Not Found"
+        });
+    }
+
+    // Check if old password is correct
+    if (!(await user.isPasswordCorrect(oldPassword))) {
+        return res.status(401).json({
+            status: 401,
+            message: "Old password is not correct.",
+            error: "Unauthorized request"
+        });
+    }
+
+    // Check if old password and new password are the same
+    if (oldPassword === newPassword) {
+        return res.status(400).json({
+            status: 400,
+            message: "Old password and new password cannot be the same.",
+            error: "Bad Request"
+        });
+    }
+
+    // Check if old password and confirm password are the same
+    if (oldPassword === confirmPassword) {
+        return res.status(400).json({
+            status: 400,
+            message: "Old password and confirm password cannot be the same.",
+            error: "Bad Request"
+        });
+    }
+
+    // Update the user's password
+    user.password = newPassword;
+    await user.save({ validateBeforeSave: false });
+
+    // Return success response
+    return res.status(200).json({
+        status: 200,
+        data: user,
+        message: "Password updated successfully.",
+    });
+});
+
 
 // get current user
 const getCurrentUser = asyncHandler(async (req, res) => {
-    return res.status(200).json(new ApiResponse(200, req.user, "Current user fetched succesfully."))
-})
+    try {
+        const user = req.user;
+
+        if (!user) {
+            return res.status(404).json({ data: null, message: "User not found." });
+        }
+
+        // If the user is found, return the user data with a 200 status
+        res.status(200).json({ data: user, message: "User fetched successfully." });
+
+    } catch (error) {
+        // Log the error and return a 500 status for server error
+        console.error("Error fetching user:", error.message);
+        res.status(500).json({ data: null, message: error.message || "Internal Server Error" });
+    }
+});
+
 
 //Update user account details
 const updateAccoutDetails = asyncHandler(async (req, res) => {
-    const { fullName, email } = req.body
+    const { fullName, userName } = req.body
 
-    if (!fullName && !email) {
-        throw new ApiError(401, "Either fullName or email is required!!")
+    if (!fullName && !userName) {
+        throw new ApiError(401, "Either fullName or userName is required!!")
     }
 
     const user = await User.findByIdAndUpdate(
@@ -256,7 +379,7 @@ const updateAccoutDetails = asyncHandler(async (req, res) => {
         {
             $set: {
                 fullName,
-                email
+                userName
             }
         },
         { new: true }
@@ -379,7 +502,7 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
                 isSubscribed: 1,
                 avatar: 1,
                 coverImage: 1,
-                email: 1
+                userName: 1
             }
         }
     ]);
