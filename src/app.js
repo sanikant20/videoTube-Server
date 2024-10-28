@@ -6,7 +6,7 @@ const app = express()
 
 // cross origin resource sharing configuration
 app.use(cors({
-    origin: process.env.CORS_ORIGIN,
+    origin: process.env.CORS_ORIGIN || "http://localhost:5173",
     credentials: true
 }))
 
@@ -16,6 +16,18 @@ app.use(express.urlencoded({ extended: true, limit: "16kb" })) // URL encoded ex
 app.use(express.static("public")) // public assets store files like images, etc.
 app.use(cookieParser())
 
+// Error handler middleware
+app.use((err, req, res, next) => {
+    const statusCode = err.statusCode || 500; // Default to 500 if no status code is present
+    const message = err.message || "Something went wrong";
+
+    res.status(statusCode).json({
+        success: false,
+        statusCode,
+        message,
+        errors: err.errors || [], // You can add more error details if available
+    });
+});
 
 // Routes import
 import commentRoute from "./routes/comment.routes.js"
