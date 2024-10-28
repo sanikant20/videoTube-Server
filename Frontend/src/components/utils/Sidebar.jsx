@@ -49,20 +49,20 @@ const Sidebar = () => {
               <i className="fas fa-video me-2"></i> Shorts
             </Link>
           </li>
-          <li className={`nav-item ${isActive("/tweets")}`}>
-            <Link to="/tweets" className={`nav-link ${theme === 'light' ? 'text-dark' : 'text-white'} ${isActive("/tweets")}`}>
-              <i className="fas fa-comment me-2"></i> Tweets
-            </Link>
-          </li>
-          <li className={`nav-item ${isActive("/playlists")}`}>
-            <Link to="/playlists" className={`nav-link ${theme === 'light' ? 'text-dark' : 'text-white'} ${isActive("/playlists")}`}>
-              <i className="fas fa-list me-2"></i> Playlists
-            </Link>
-          </li>
+
 
           {token && (
             <>
-
+              <li className={`nav-item ${isActive("/tweets")}`}>
+                <Link to="/tweets" className={`nav-link ${theme === 'light' ? 'text-dark' : 'text-white'} ${isActive("/tweets")}`}>
+                  <i className="fas fa-comment me-2"></i> Tweets
+                </Link>
+              </li>
+              <li className={`nav-item ${isActive("/playlists")}`}>
+                <Link to="/playlists" className={`nav-link ${theme === 'light' ? 'text-dark' : 'text-white'} ${isActive("/playlists")}`}>
+                  <i className="fas fa-list me-2"></i> Playlists
+                </Link>
+              </li>
               <li className={`nav-item ${isActive("/profile")}`}>
                 <Link to="/profile" className={`nav-link ${theme === 'light' ? 'text-dark' : 'text-white'} ${isActive("/profile")}`}>
                   <i className="fas fa-user me-2"></i> Profile
@@ -118,19 +118,20 @@ const Sidebar = () => {
                 <i className="fas fa-video me-2"></i> Shorts
               </Link>
             </li>
-            <li className={`nav-item ${isActive("/tweets")}`}>
-              <Link to="/tweets" className={`nav-link ${theme === 'light' ? 'text-dark' : 'text-white'} ${isActive("/tweets")}`} onClick={handleClose}>
-                <i className="fas fa-comment me-2"></i> Tweets
-              </Link>
-            </li>
-            <li className={`nav-item ${isActive("/playlists")}`}>
-              <Link to="/playlists" className={`nav-link ${theme === 'light' ? 'text-dark' : 'text-white'} ${isActive("/playlists")}`} onClick={handleClose}>
-                <i className="fas fa-list me-2"></i> Playlists
-              </Link>
-            </li>
+
 
             {token && (
               <>
+                <li className={`nav-item ${isActive("/tweets")}`}>
+                  <Link to="/tweets" className={`nav-link ${theme === 'light' ? 'text-dark' : 'text-white'} ${isActive("/tweets")}`} onClick={handleClose}>
+                    <i className="fas fa-comment me-2"></i> Tweets
+                  </Link>
+                </li>
+                <li className={`nav-item ${isActive("/playlists")}`}>
+                  <Link to="/playlists" className={`nav-link ${theme === 'light' ? 'text-dark' : 'text-white'} ${isActive("/playlists")}`} onClick={handleClose}>
+                    <i className="fas fa-list me-2"></i> Playlists
+                  </Link>
+                </li>
                 <li className={`nav-item ${isActive("/profile")}`}>
                   <Link to="/profile" className={`nav-link ${theme === 'light' ? 'text-dark' : 'text-white'} ${isActive("/profile")}`} onClick={handleClose}>
                     <i className="fas fa-user me-2"></i> Profile

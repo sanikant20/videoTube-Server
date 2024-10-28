@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Form, Button, Card, InputGroup } from 'react-bootstrap';
+import { Form, Button, Card, InputGroup, Alert } from 'react-bootstrap';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Snackbar from '../utils/Snackbar';
@@ -18,6 +18,8 @@ const Register = () => {
   const [coverImage, setCoverImage] = useState(null);
   const [showSnackbar, setShowSnackbar] = useState({ message: '', type: '', show: false });
   const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+
   const navigate = useNavigate();
   const { theme } = useTheme();
 
@@ -27,6 +29,12 @@ const Register = () => {
     // Check if passwords match
     if (password !== confirmPassword) {
       setShowSnackbar({ message: "Passwords don't match!", type: 'error', show: true });
+      return;
+    }
+
+    if (!fullName || !userName || !email || !password) {
+      setShowSnackbar({ message: 'Please fill in all fields.', type: 'error', show: true });
+      setLoading(false);
       return;
     }
 
@@ -69,6 +77,13 @@ const Register = () => {
         >
           <Card.Body>
             <h2 className="text-center mb-4">Videotube Register</h2>
+            {
+              errorMessage && (
+                <Alert variant="danger" className="mb-4">
+                  {errorMessage}
+                </Alert>
+              )
+            }
             <Form onSubmit={handleRegister}>
               {/* Full Name Input */}
               <Form.Group className="mb-3" controlId="formBasicFullName">
@@ -78,7 +93,6 @@ const Register = () => {
                   placeholder="Enter your full name"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  required
                 />
               </Form.Group>
 
@@ -91,7 +105,6 @@ const Register = () => {
                     placeholder="Enter your username"
                     value={userName}
                     onChange={(e) => setUserName(e.target.value)}
-                    required
                   />
                 </Form.Group>
 
@@ -102,7 +115,6 @@ const Register = () => {
                     placeholder="Enter email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    required
                   />
                 </Form.Group>
               </div>
@@ -117,7 +129,6 @@ const Register = () => {
                       placeholder="Password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      required
                     />
                     <Button
                       variant="outline-secondary"
@@ -136,7 +147,6 @@ const Register = () => {
                       placeholder="Confirm Password"
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
-                      required
                     />
                     <Button
                       variant="outline-secondary"
@@ -156,7 +166,6 @@ const Register = () => {
                     type="file"
                     accept="image/*"
                     onChange={(e) => setAvatar(e.target.files[0])}
-                    required
                   />
                 </Form.Group>
 

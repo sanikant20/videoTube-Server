@@ -31,7 +31,6 @@ const PrivateRoute = ({ children }) => {
       {token ? (
         children
       ) : (
-        // Prevent rendering the children if the token is absent and waiting to redirect
         null
       )}
       
@@ -40,7 +39,7 @@ const PrivateRoute = ({ children }) => {
         show={showSnackbar}
         onClose={() => {
           setShowSnackbar(false);
-          setRedirect(true); // Optional: you could redirect immediately if snackbar is closed
+          setRedirect(true); 
         }}
         type="error"
       />

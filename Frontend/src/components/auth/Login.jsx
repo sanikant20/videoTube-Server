@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Form, Button, Card, InputGroup } from 'react-bootstrap';
+import { Form, Button, Card, InputGroup, Alert } from 'react-bootstrap';
 import { useNavigate, Link } from 'react-router-dom';
 import Snackbar from '../utils/Snackbar';
 import axios from 'axios';
@@ -19,6 +19,7 @@ const Login = () => {
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
+
     try {
       const response = await axios.post(`${URL}/users/login`, {
         email,
@@ -27,12 +28,10 @@ const Login = () => {
         withCredentials: true,
       });
 
+      console.log("response Login data", response.data);
       // Successful login handling
       if (response.status === 200) {
-        const { user, accessToken } = response.data.data;
-
-        // Optionally, store user info and token in localStorage or context
-        localStorage.setItem('user', JSON.stringify(user));
+        const { accessToken } = response.data.data;
         localStorage.setItem('accessToken', accessToken);
 
         // Show success Snackbar and navigate after short delay
@@ -40,6 +39,8 @@ const Login = () => {
         setTimeout(() => {
           navigate('/');
         }, 2000);
+      } else {
+        setErrorMessage(response.data?.message);
       }
 
     } catch (error) {
@@ -58,10 +59,9 @@ const Login = () => {
           <Card.Body>
             <h2 className="text-center mb-4">Videotube Login</h2>
             {errorMessage && (
-              <div className="alert alert-danger" role="alert">
-                {errorMessage}
-              </div>
+              <Alert variant="danger" onClose={() => setErrorMessage('')} dismissible>{errorMessage}</Alert>
             )}
+
             <Form onSubmit={handleLogin}>
               {/* Email Input */}
               <Form.Group className="mb-3" controlId="formBasicEmail">
@@ -71,7 +71,6 @@ const Login = () => {
                   placeholder="Enter email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  required
                 />
               </Form.Group>
 
@@ -84,7 +83,6 @@ const Login = () => {
                     placeholder="Password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    required
                   />
                   <Button
                     variant="outline-secondary"
@@ -165,3 +163,4 @@ const Login = () => {
 };
 
 export default Login;
+
