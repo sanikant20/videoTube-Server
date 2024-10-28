@@ -5,7 +5,8 @@ import {
     deleteTweet,
     getAllTweets,
     getUserTweets,
-    updateTweets
+    updateTweets,
+    getSingleTweet
 } from "../controllers/tweet.controller.js";
 
 const router = Router()
@@ -15,6 +16,7 @@ router.use(verifyJWT) // apply middleware for all routes
 router.route("/create-tweet").post(createTweet)
 router.route("/all-tweets").get(getAllTweets)
 router.route("/user-tweets").get(getUserTweets)
+router.route("/single-tweet/:tweetId").get(getSingleTweet)
 router
     .route("/:tweetId")
     .patch(updateTweets)
